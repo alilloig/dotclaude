@@ -18,7 +18,9 @@
       "WebSearch",
       "WebFetch(domain:docs.google.com)",
       "WebFetch(domain:docs.sui.io)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "mcp__codex__codex",
+      "mcp__codex__codex-reply"
     ]
   }
 }
