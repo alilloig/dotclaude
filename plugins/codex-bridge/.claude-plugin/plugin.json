@@ -1,0 +1,17 @@
+{
+  "name": "codex-bridge",
+  "version": "1.0.0",
+  "description": "Bridge to OpenAI Codex CLI — send prompts to Codex and get responses, with multi-turn session support via threadId.",
+  "author": {
+    "name": "alilloig"
+  },
+  "keywords": ["codex", "openai", "bridge", "agent"],
+  "commands": ["./commands/codex.md"],
+  "skills": "./skills/",
+  "mcpServers": {
+    "codex": {
+      "command": "codex",
+      "args": ["mcp-server"]
+    }
+  }
+}
