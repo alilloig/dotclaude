@@ -8,12 +8,12 @@
 
 1. **Read the index**: `~/workspace/claudefiles/sui-pilot/AGENTS.md`
 2. **Search the docs**: Use Grep/Read on the appropriate doc directory based on the topic:
-   - **Sui/Move**: `~/workspace/claudefiles/sui-pilot/.sui-docs/` (370 files -- blockchain, Move language, objects, transactions, SDKs)
-   - **Walrus**: `~/workspace/claudefiles/sui-pilot/.walrus-docs/` (125 files -- decentralized storage, blobs, Walrus Sites, TypeScript SDK)
-   - **Seal**: `~/workspace/claudefiles/sui-pilot/.seal-docs/` (13 files -- secrets management, encryption, key servers, access control)
+   - **Sui/Move**: `~/workspace/claudefiles/sui-pilot/.sui-docs/` (blockchain, Move language, objects, transactions, SDKs)
+   - **Walrus**: `~/workspace/claudefiles/sui-pilot/.walrus-docs/` (decentralized storage, blobs, Walrus Sites, TypeScript SDK)
+   - **Seal**: `~/workspace/claudefiles/sui-pilot/.seal-docs/` (secrets management, encryption, key servers, access control)
 3. **Verify patterns**: Cross-reference code patterns against the official docs before writing code
 
-**Why**: Sui Move evolves rapidly and training data goes stale. sui-pilot contains 500+ doc files across three ecosystems (Sui, Walrus, Seal) extracted from official documentation. Always prefer these docs over memory.
+**Why**: Sui Move evolves rapidly and training data goes stale. sui-pilot contains doc files across three ecosystems (Sui, Walrus, Seal) extracted from official documentation. Always prefer these docs over memory.
 
 ### Code Quality Workflow (MANDATORY)
 
@@ -65,6 +65,8 @@ All shared Claude Code configuration lives in `~/workspace/claudefiles/`, a git 
 | Local settings | `settings.local.json` | `~/.claude/settings.local.json` |
 | Agent catalog & recipes | `AGENTS.md` | *(none -- referenced by absolute path)* |
 | Sui/Walrus/Seal documentation | `sui-pilot/` (submodule) | *(none -- referenced by absolute path)* |
+| Plugins | `plugins/` | *(none -- referenced by plugins system)* |
+| Documentation & audits | `docs/` | *(none -- internal reference)* |
 
 ### What Stays Local (Not Symlinked)
 

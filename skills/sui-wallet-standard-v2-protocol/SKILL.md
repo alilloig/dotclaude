@@ -108,10 +108,18 @@ import { Transaction } from '@mysten/sui/transactions';
 async function buildTransaction(
   input: string,
   client: SuiGrpcClient,
+  senderAddress: string,
 ): Promise<Uint8Array> {
   const isJson = input.trimStart().startsWith('{');
   if (isJson) {
     const tx = Transaction.from(input);
+    // CRITICAL: dApp Kit v2's toJSON() wrapper calls setSenderIfNotSet()
+    // internally, but the JSON output may still lack a sender. The wallet
+    // must set it before build() or Transaction.build() throws
+    // "Missing transaction sender".
+    if (!tx.getData().sender) {
+      tx.setSender(senderAddress);
+    }
     return await tx.build({ client });
   }
   // Legacy: already base64 BCS bytes
