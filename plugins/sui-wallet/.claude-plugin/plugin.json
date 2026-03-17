@@ -1,0 +1,18 @@
+{
+  "name": "sui-wallet",
+  "version": "1.0.0",
+  "description": "Mock Sui wallet for browser-based dApp testing via MCP. Injects a Wallet Standard wallet with all signing delegated to Node.js.",
+  "author": { "name": "alilloig" },
+  "keywords": ["sui", "wallet", "playwright", "testing", "dapp", "mcp"],
+  "commands": ["./commands/sui-wallet.md"],
+  "skills": "./skills/",
+  "mcpServers": {
+    "sui-wallet": {
+      "command": "npx",
+      "args": ["sui-wallet-mcp"],
+      "env": {
+        "DAPP_URL": ""
+      }
+    }
+  }
+}

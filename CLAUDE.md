@@ -47,72 +47,52 @@ When in plan mode, actively use the AskUserQuestion tool to clarify requirements
 
 ### Overview
 
-All shared Claude Code configuration lives in `~/workspace/claudefiles/`, a git repo symlinked into `~/.claude/`. This keeps skills, commands, global instructions, and settings version-controlled and portable across machines.
+`~/.claude/` is a symlink to `~/workspace/claudefiles/`. The entire Claude Code config directory is version-controlled. Ephemeral/runtime content (sessions, projects, caches) lives physically inside the repo but is gitignored.
 
 ### Repository Path
 
 ```
-~/workspace/claudefiles/
+~/workspace/claudefiles/   ← this IS ~/.claude/
 ```
 
-### What Lives in the Repo (Shared)
+### Setup (New Machine)
 
-| Item | Repo path | Symlink |
-|---|---|---|
-| Global instructions | `CLAUDE.md` | `~/.claude/CLAUDE.md` |
-| Skills | `skills/` | `~/.claude/skills/` |
-| Commands | `commands/` | `~/.claude/commands/` |
-| Local settings | `settings.local.json` | `~/.claude/settings.local.json` |
-| Agent catalog & recipes | `AGENTS.md` | *(none -- referenced by absolute path)* |
-| Sui/Walrus/Seal documentation | `sui-pilot/` (submodule) | *(none -- referenced by absolute path)* |
-| Plugins | `plugins/` | *(none -- referenced by plugins system)* |
-| Documentation & audits | `docs/` | *(none -- internal reference)* |
+```bash
+git clone --recurse-submodules git@github.com:alilloig/claudefiles.git ~/workspace/claudefiles
+ln -s ~/workspace/claudefiles ~/.claude
+```
 
-### What Stays Local (Not Symlinked)
+### What's Tracked (Committed)
 
-These are machine-specific, session-specific, or runtime data and must **not** be added to the repo:
+| Item | Path |
+|---|---|
+| Global instructions | `CLAUDE.md` |
+| Skills | `skills/` |
+| Commands | `commands/` |
+| Global permissions | `settings.local.json` |
+| User settings (hooks, plugins, env) | `settings.json` |
+| Hook scripts | `hooks/` |
+| Agent teams | `teams/` |
+| Local plugins | `plugins/codex-bridge/`, `plugins/sui-wallet/` |
+| Plugin state | `plugins/installed_plugins.json`, `plugins/known_marketplaces.json`, `plugins/blocklist.json` |
+| Agent catalog & recipes | `_meta/AGENTS.md` |
+| Sui/Walrus/Seal documentation | `sui-pilot/` (submodule) |
+| Documentation & audits | `_meta/docs/` |
 
-- `cache/` — runtime cache
-- `downloads/` — downloaded files
-- `hooks/` — machine-specific hook scripts
-- `plans/` — session-specific plan files
-- `projects/` — per-project local overrides
-- `settings.json` — machine-specific settings
-- Other runtime directories and files
+### What's Gitignored (Ephemeral)
+
+Runtime data stays on disk but is never committed. See `.gitignore` for the full list. Key items:
+
+- `projects/` — per-project session data, memory, conversation logs
+- `sessions/`, `session-env/` — active session tracking
+- `history.jsonl` — command history (sensitive)
+- `cache/`, `debug/`, `telemetry/`, `statsig/` — runtime caches and analytics
+- `plugins/cache/`, `plugins/marketplaces/` — downloaded plugin code
+- `backups/`, `plans/`, `tasks/`, `todos/` — session-scoped working data
 
 ### The Rule
 
-**Always create new skills, commands, and shared config inside `~/workspace/claudefiles/`.** Never write directly to `~/.claude/` for shared items — the symlinks ensure files written to `~/.claude/skills/`, `~/.claude/commands/`, etc. already land in the repo.
-
-### Symlink Architecture
-
-Only 4 symlinks are needed (the shared set is the minority):
-
-```
-~/.claude/CLAUDE.md          → ~/workspace/claudefiles/CLAUDE.md
-~/.claude/commands/          → ~/workspace/claudefiles/commands/
-~/.claude/skills/            → ~/workspace/claudefiles/skills/
-~/.claude/settings.local.json → ~/workspace/claudefiles/settings.local.json
-```
-
-Everything else in `~/.claude/` is a real directory or file (17+ items). This is more efficient than the inverse approach (symlinking `~/.claude` itself to the repo and then symlinking each local item back out).
-
-### Adding a New Shared Item
-
-If a new top-level item needs to be shared (rare):
-
-```bash
-# 1. Move the item into the repo
-mv ~/.claude/new-item ~/workspace/claudefiles/new-item
-
-# 2. Create the symlink
-ln -s ~/workspace/claudefiles/new-item ~/.claude/new-item
-
-# 3. Commit
-cd ~/workspace/claudefiles
-git add new-item
-git commit -m "Add new-item to shared config"
-```
+**`~/.claude/` IS the repo.** Any file you add and commit is shared across machines. Any file matched by `.gitignore` stays local. No symlink management needed — just commit or ignore.
 
 ### Git Submodules
 
@@ -140,7 +120,7 @@ git add sui-pilot && git commit -m "Update sui-pilot submodule"
 
 ### Reference
 
-Agent role definitions and team recipes are documented in `~/workspace/claudefiles/AGENTS.md`. **Always consult this file when creating teams.**
+Agent role definitions and team recipes are documented in `~/workspace/claudefiles/_meta/AGENTS.md`. **Always consult this file when creating teams.**
 
 ### When Creating Teams
 

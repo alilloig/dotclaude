@@ -1,0 +1,26 @@
+# ── Runtime & session data (machine-specific, ephemeral) ──
+backups/
+cache/
+debug/
+downloads/
+file-history/
+history.jsonl
+ide/
+mcp-needs-auth-cache.json
+paste-cache/
+plans/
+projects/
+security_warnings_state_*.json
+session-env/
+sessions/
+shell-snapshots/
+stats-cache.json
+statsig/
+tasks/
+telemetry/
+todos/
+
+# ── Plugin runtime (keep config, ignore downloaded cache/repos) ──
+plugins/cache/
+plugins/marketplaces/
+plugins/install-counts-cache.json

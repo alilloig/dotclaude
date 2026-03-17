@@ -8,8 +8,8 @@ description: |
   project to the latest CLI format. Covers the non-obvious gotcha of custom named addresses
   needing source code changes.
 author: Claude Code
-version: 1.0.0
-date: 2026-02-03
+version: 1.1.0
+date: 2026-03-16
 ---
 
 # Sui Move.toml Migration (pre-v1.63 → v1.63+)
@@ -126,6 +126,23 @@ sui move test
 
 Build failures from scaffold TODO code (empty function bodies) are expected on educational
 repos — these are pre-existing and unrelated to the migration.
+
+### Gotcha: System Environments (v1.67+)
+
+In Sui CLI v1.67+, `testnet` and `mainnet` are **system environments** that cannot be
+overridden in `[environments]`. Adding `[environments] testnet = "..."` will fail with:
+
+```
+Error: Cannot override default environments. Environment `testnet` is a system environment
+and cannot be overridden. System environments: testnet, mainnet
+```
+
+**Fix:** Remove `[environments]` entries for `testnet` and `mainnet` entirely. The CLI
+resolves them automatically. Only add `[environments]` for custom environments (e.g.,
+`localnet`, `devnet`).
+
+If your active environment's chain ID doesn't match the system one (e.g., testnet was
+wiped), use `sui move build -e testnet` to override without changing Move.toml.
 
 ## Notes
 

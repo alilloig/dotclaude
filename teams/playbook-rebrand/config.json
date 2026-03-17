@@ -1,0 +1,19 @@
+{
+  "name": "playbook-rebrand",
+  "description": "Playbook rebrand: Move cleanup + Frontend package removal + string rebrand + identifier rename + file upload improvements",
+  "createdAt": 1772686235951,
+  "leadAgentId": "team-lead@playbook-rebrand",
+  "leadSessionId": "682e28ea-6554-4fd3-b08d-10109ae36d5f",
+  "members": [
+    {
+      "agentId": "team-lead@playbook-rebrand",
+      "name": "team-lead",
+      "agentType": "team-lead",
+      "model": "claude-opus-4-6",
+      "joinedAt": 1772686235951,
+      "tmuxPaneId": "",
+      "cwd": "/Users/alilloig/workspace/playbook-rebranding",
+      "subscriptions": []
+    }
+  ]
+}

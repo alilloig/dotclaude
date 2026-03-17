@@ -1,21 +1,80 @@
 # claudefiles
 
-Shared Claude Code configuration — skills, commands, plugins, agent definitions, and documentation — version-controlled and portable across machines.
+This repo **is** `~/.claude/`. One symlink makes the entire Claude Code config directory version-controlled and portable across machines. Ephemeral runtime data (sessions, caches, projects) lives on disk but is gitignored.
 
 ## Setup
 
 ```bash
 # Clone with submodules
-git clone --recurse-submodules <repo-url> ~/workspace/claudefiles
+git clone --recurse-submodules git@github.com:alilloig/claudefiles.git ~/workspace/claudefiles
 
-# Create the 4 symlinks into ~/.claude/
-ln -s ~/workspace/claudefiles/CLAUDE.md ~/.claude/CLAUDE.md
-ln -s ~/workspace/claudefiles/commands/ ~/.claude/commands
-ln -s ~/workspace/claudefiles/skills/ ~/.claude/skills
-ln -s ~/workspace/claudefiles/settings.local.json ~/.claude/settings.local.json
+# Create the single symlink
+ln -s ~/workspace/claudefiles ~/.claude
 ```
 
-Everything else in `~/.claude/` (cache, hooks, plans, projects, settings.json, etc.) stays local and is not symlinked.
+Or use the bootstrap script:
+
+```bash
+bash ~/workspace/claudefiles/_meta/setup.sh
+```
+
+### Migrating from the old 4-symlink setup
+
+```bash
+# Remove the 4 old symlinks
+rm ~/.claude/CLAUDE.md ~/.claude/commands ~/.claude/skills ~/.claude/settings.local.json
+
+# Move ~/.claude aside (preserves ephemeral data)
+mv ~/.claude ~/.claude.bak
+
+# Create the single symlink
+ln -s ~/workspace/claudefiles ~/.claude
+
+# Move ephemeral content back (gitignored, won't be committed)
+for item in backups cache debug downloads file-history history.jsonl \
+  ide mcp-needs-auth-cache.json paste-cache plans projects \
+  session-env sessions shell-snapshots stats-cache.json \
+  statsig tasks telemetry todos; do
+    [ -e ~/.claude.bak/$item ] && mv ~/.claude.bak/$item ~/.claude/$item
+done
+mv ~/.claude.bak/security_warnings_state_*.json ~/.claude/ 2>/dev/null
+mv ~/.claude.bak/plugins/cache ~/.claude/plugins/cache
+mv ~/.claude.bak/plugins/marketplaces ~/.claude/plugins/marketplaces
+mv ~/.claude.bak/plugins/install-counts-cache.json ~/.claude/plugins/ 2>/dev/null
+
+# Verify, then clean up
+ls -la ~/.claude  # should show symlink
+rm -rf ~/.claude.bak
+```
+
+## What's Tracked
+
+| Category | Path |
+|----------|------|
+| Global instructions | `CLAUDE.md` |
+| Skills (19) | `skills/` |
+| Commands (2) | `commands/` |
+| Global permissions | `settings.local.json` |
+| User settings (hooks, plugins, env) | `settings.json` |
+| Hook scripts | `hooks/` |
+| Agent teams | `teams/` |
+| Local plugins | `plugins/codex-bridge/`, `plugins/sui-wallet/` |
+| Plugin state | `plugins/*.json` |
+| Agent catalog & recipes | `_meta/AGENTS.md` |
+| Documentation & audits | `_meta/docs/` |
+| Sui/Walrus/Seal docs (submodule) | `sui-pilot/` |
+
+## What's Gitignored
+
+Runtime/session data stays on disk but is never committed:
+
+- `projects/` — per-project session data, memory, conversation logs
+- `sessions/`, `session-env/`, `history.jsonl` — session tracking and history
+- `cache/`, `debug/`, `telemetry/`, `statsig/` — caches and analytics
+- `plugins/cache/`, `plugins/marketplaces/` — downloaded marketplace plugins
+- `backups/`, `plans/`, `tasks/`, `todos/` — session-scoped working data
+
+See `.gitignore` for the complete list.
 
 ## What's Inside
 
@@ -57,15 +116,16 @@ Everything else in `~/.claude/` (cache, hooks, plans, projects, settings.json, e
 | `/codex` | Send a prompt to Codex CLI and return the response |
 | `/generate-gh-templates` | Analyze a repo and create tailored GitHub issue and PR templates |
 
-### Plugins (1)
+### Plugins (2)
 
 | Plugin | Path | Description |
 |--------|------|-------------|
 | codex-bridge | `plugins/codex-bridge/` | MCP bridge between Claude Code and OpenAI Codex CLI |
+| sui-wallet | `plugins/sui-wallet/` | Sui wallet plugin |
 
 ### Agent Roles & Team Recipes
 
-Defined in [`AGENTS.md`](AGENTS.md). Four reusable roles:
+Defined in [`_meta/AGENTS.md`](_meta/AGENTS.md). Four reusable roles:
 
 | Role | Model | Specialization |
 |------|-------|----------------|
@@ -74,7 +134,7 @@ Defined in [`AGENTS.md`](AGENTS.md). Four reusable roles:
 | `docs-agent` | Sonnet | Project documentation and guides |
 | `review-agent` | Opus | Cross-stack code review and audits |
 
-Four team recipes: `full-stack`, `contract-only`, `frontend-only`, `review`. See AGENTS.md for composition and task decomposition details.
+Four team recipes: `full-stack`, `contract-only`, `frontend-only`, `review`. See `_meta/AGENTS.md` for details.
 
 ### Documentation Bridge
 
@@ -86,33 +146,13 @@ The `sui-pilot/` submodule provides 500+ doc files extracted from official sourc
 | `.walrus-docs/` | 125 | Decentralized storage, blobs, Walrus Sites, TypeScript SDK |
 | `.seal-docs/` | 13 | Secrets management, encryption, key servers, access control |
 
-`CLAUDE.md` instructs Claude to consult these docs before any Sui/Move/Walrus/Seal work.
-
-## Symlink Architecture
-
-Only 4 symlinks connect this repo to `~/.claude/`:
-
-```
-~/.claude/CLAUDE.md           → ~/workspace/claudefiles/CLAUDE.md
-~/.claude/commands/           → ~/workspace/claudefiles/commands/
-~/.claude/skills/             → ~/workspace/claudefiles/skills/
-~/.claude/settings.local.json → ~/workspace/claudefiles/settings.local.json
-```
-
-Everything else in `~/.claude/` is real (17+ local items). This is simpler than symlinking `~/.claude/` itself and then excluding local items back out.
-
 ## Adding New Items
 
-**New skill**: create a directory under `skills/` with a `SKILL.md` — the symlink makes it immediately available.
+**New skill**: create a directory under `skills/` with a `SKILL.md` and commit.
 
-**New command**: add a `.md` file under `commands/`.
+**New command**: add a `.md` file under `commands/` and commit.
 
-**New shared top-level item** (rare):
-
-```bash
-mv ~/.claude/new-item ~/workspace/claudefiles/new-item
-ln -s ~/workspace/claudefiles/new-item ~/.claude/new-item
-```
+**New config file**: just add it to the repo root and commit. If it's ephemeral/runtime, add it to `.gitignore` instead.
 
 ## Submodules
 
