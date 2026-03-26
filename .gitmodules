@@ -7,3 +7,6 @@
 [submodule "sui-pilot"]
 	path = sui-pilot
 	url = git@github.com:alilloig/sui-pilot.git
+[submodule "skills/move-code-review"]
+	path = skills/move-code-review
+	url = git@github.com:MystenLabs/move-code-review-skill.git
