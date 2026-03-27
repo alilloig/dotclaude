@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <defs>
+    <filter id="seal-glow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <linearGradient id="seal-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4DA2FF;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#2A7ACC;stop-opacity:1"/>
+    </linearGradient>
+  </defs>
+  <!-- Shield body -->
+  <path d="M100 20 L160 50 L160 110 Q160 155 100 185 Q40 155 40 110 L40 50 Z"
+        fill="none" stroke="url(#seal-grad)" stroke-width="3" filter="url(#seal-glow)"/>
+  <path d="M100 35 L148 58 L148 108 Q148 145 100 170 Q52 145 52 108 L52 58 Z"
+        fill="#4DA2FF" opacity="0.12"/>
+  <!-- Isometric lock body -->
+  <rect x="78" y="95" width="44" height="38" rx="4" fill="#4DA2FF" opacity="0.6"/>
+  <rect x="80" y="97" width="40" height="34" rx="3" fill="none" stroke="#FFFFFF" stroke-width="1.5" opacity="0.7"/>
+  <!-- Lock shackle -->
+  <path d="M85 97 L85 78 Q85 65 100 65 Q115 65 115 78 L115 97"
+        fill="none" stroke="#4DA2FF" stroke-width="4" stroke-linecap="round"/>
+  <path d="M87 97 L87 80 Q87 69 100 69 Q113 69 113 80 L113 97"
+        fill="none" stroke="#FFFFFF" stroke-width="1.5" opacity="0.5"/>
+  <!-- Keyhole -->
+  <circle cx="100" cy="110" r="5" fill="#FFFFFF" opacity="0.9"/>
+  <rect x="98" y="112" width="4" height="8" rx="1" fill="#FFFFFF" opacity="0.9"/>
+  <!-- Isometric accent lines -->
+  <line x1="52" y1="58" x2="100" y2="35" stroke="#4DA2FF" stroke-width="0.5" opacity="0.3"/>
+  <line x1="148" y1="58" x2="100" y2="35" stroke="#4DA2FF" stroke-width="0.5" opacity="0.3"/>
+  <!-- Corner dots -->
+  <circle cx="100" cy="35" r="2" fill="#4DA2FF" opacity="0.5"/>
+  <circle cx="52" cy="58" r="2" fill="#4DA2FF" opacity="0.5"/>
+  <circle cx="148" cy="58" r="2" fill="#4DA2FF" opacity="0.5"/>
+</svg>

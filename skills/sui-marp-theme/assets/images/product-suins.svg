@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <defs>
+    <filter id="ns-glow">
+      <feGaussianBlur stdDeviation="2.5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <linearGradient id="ns-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4DA2FF;stop-opacity:0.8"/>
+      <stop offset="100%" style="stop-color:#4DA2FF;stop-opacity:0.4"/>
+    </linearGradient>
+  </defs>
+  <g filter="url(#ns-glow)">
+    <!-- Tag shape - isometric -->
+    <path d="M50 60 L140 60 Q150 60 150 70 L150 130 Q150 140 140 140 L50 140 Q40 140 40 130 L40 70 Q40 60 50 60 Z"
+          fill="url(#ns-grad)" opacity="0.2" stroke="#4DA2FF" stroke-width="2"/>
+    <!-- Inner border -->
+    <path d="M54 66 L136 66 Q142 66 142 72 L142 128 Q142 134 136 134 L54 134 Q48 134 48 128 L48 72 Q48 66 54 66 Z"
+          fill="none" stroke="#4DA2FF" stroke-width="0.8" opacity="0.4"/>
+    <!-- @ symbol stylized -->
+    <circle cx="100" cy="95" r="22" fill="none" stroke="#4DA2FF" stroke-width="2.5" opacity="0.7"/>
+    <path d="M112 95 Q112 83 100 83 Q88 83 88 95 Q88 107 100 107 Q108 107 112 102 L112 108 Q108 115 100 115"
+          fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" opacity="0.85"/>
+    <!-- .sui text hint -->
+    <circle cx="72" cy="120" r="2" fill="#FFFFFF" opacity="0.6"/>
+    <text x="78" y="124" font-family="monospace" font-size="11" fill="#FFFFFF" opacity="0.5">sui</text>
+    <!-- Tag hole -->
+    <circle cx="55" cy="75" r="4" fill="none" stroke="#4DA2FF" stroke-width="1.5" opacity="0.5"/>
+    <circle cx="55" cy="75" r="1.5" fill="#4DA2FF" opacity="0.3"/>
+    <!-- Connection line from tag hole -->
+    <line x1="40" y1="60" x2="30" y2="45" stroke="#4DA2FF" stroke-width="1" opacity="0.3"/>
+    <line x1="30" y1="45" x2="25" y2="45" stroke="#4DA2FF" stroke-width="1" opacity="0.3"/>
+    <!-- Decorative dots -->
+    <circle cx="130" cy="75" r="1.5" fill="#4DA2FF" opacity="0.4"/>
+    <circle cx="135" cy="80" r="1.5" fill="#4DA2FF" opacity="0.3"/>
+    <circle cx="130" cy="85" r="1.5" fill="#4DA2FF" opacity="0.2"/>
+  </g>
+</svg>

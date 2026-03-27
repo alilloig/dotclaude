@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <defs>
+    <filter id="sui-glow">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <radialGradient id="sui-grad" cx="50%" cy="35%" r="55%">
+      <stop offset="0%" style="stop-color:#4DA2FF;stop-opacity:0.9"/>
+      <stop offset="70%" style="stop-color:#4DA2FF;stop-opacity:0.6"/>
+      <stop offset="100%" style="stop-color:#2A7ACC;stop-opacity:0.4"/>
+    </radialGradient>
+    <linearGradient id="sui-shine" x1="30%" y1="0%" x2="70%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFFFFF;stop-opacity:0.3"/>
+      <stop offset="100%" style="stop-color:#FFFFFF;stop-opacity:0"/>
+    </linearGradient>
+  </defs>
+  <g filter="url(#sui-glow)">
+    <!-- Main droplet shape -->
+    <path d="M100 25 Q100 25 130 70 Q160 115 160 130 Q160 155 140 170 Q120 185 100 185 Q80 185 60 170 Q40 155 40 130 Q40 115 70 70 Q100 25 100 25 Z"
+          fill="url(#sui-grad)"/>
+    <!-- Droplet outline -->
+    <path d="M100 25 Q100 25 130 70 Q160 115 160 130 Q160 155 140 170 Q120 185 100 185 Q80 185 60 170 Q40 155 40 130 Q40 115 70 70 Q100 25 100 25 Z"
+          fill="none" stroke="#FFFFFF" stroke-width="1.5" opacity="0.5"/>
+    <!-- Inner wave pattern - Sui's characteristic S-curve -->
+    <path d="M65 120 Q80 105 100 115 Q120 125 135 110"
+          fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/>
+    <path d="M60 140 Q78 125 100 135 Q122 145 140 130"
+          fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" opacity="0.45"/>
+    <!-- Highlight reflection -->
+    <ellipse cx="82" cy="85" rx="15" ry="25" fill="url(#sui-shine)" transform="rotate(-15 82 85)"/>
+    <!-- Top point accent -->
+    <circle cx="100" cy="28" r="2" fill="#FFFFFF" opacity="0.6"/>
+  </g>
+</svg>

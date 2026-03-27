@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <defs>
+    <filter id="mys-glow">
+      <feGaussianBlur stdDeviation="2.5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <linearGradient id="mys-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4DA2FF;stop-opacity:0.9"/>
+      <stop offset="100%" style="stop-color:#4DA2FF;stop-opacity:0.4"/>
+    </linearGradient>
+  </defs>
+  <g filter="url(#mys-glow)">
+    <!-- Central convergence point -->
+    <circle cx="100" cy="100" r="12" fill="#4DA2FF" opacity="0.5"/>
+    <circle cx="100" cy="100" r="12" fill="none" stroke="#FFFFFF" stroke-width="1.5" opacity="0.6"/>
+    <circle cx="100" cy="100" r="5" fill="#FFFFFF" opacity="0.7"/>
+    <!-- Speed arrows converging - top-left -->
+    <path d="M30 35 L88 88" stroke="#4DA2FF" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/>
+    <polygon points="88,88 78,80 82,90" fill="#4DA2FF" opacity="0.8"/>
+    <line x1="38" y1="28" x2="80" y2="75" stroke="#4DA2FF" stroke-width="1" opacity="0.3"/>
+    <!-- Speed arrows - top-right -->
+    <path d="M170 35 L112 88" stroke="#4DA2FF" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/>
+    <polygon points="112,88 122,80 118,90" fill="#4DA2FF" opacity="0.8"/>
+    <line x1="162" y1="28" x2="120" y2="75" stroke="#4DA2FF" stroke-width="1" opacity="0.3"/>
+    <!-- Speed arrows - bottom-left -->
+    <path d="M30 165 L88 112" stroke="#4DA2FF" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/>
+    <polygon points="88,112 78,120 82,110" fill="#4DA2FF" opacity="0.8"/>
+    <line x1="38" y1="172" x2="80" y2="125" stroke="#4DA2FF" stroke-width="1" opacity="0.3"/>
+    <!-- Speed arrows - bottom-right -->
+    <path d="M170 165 L112 112" stroke="#4DA2FF" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/>
+    <polygon points="112,112 122,120 118,110" fill="#4DA2FF" opacity="0.8"/>
+    <line x1="162" y1="172" x2="120" y2="125" stroke="#4DA2FF" stroke-width="1" opacity="0.3"/>
+    <!-- Horizontal speed lines -->
+    <path d="M20 100 L88 100" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+    <path d="M112 100 L180 100" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+    <!-- Vertical speed lines -->
+    <path d="M100 20 L100 88" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+    <path d="M100 112 L100 180" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+    <!-- Motion trail accents -->
+    <line x1="45" y1="35" x2="55" y2="45" stroke="#4DA2FF" stroke-width="1" opacity="0.2"/>
+    <line x1="155" y1="35" x2="145" y2="45" stroke="#4DA2FF" stroke-width="1" opacity="0.2"/>
+    <line x1="45" y1="165" x2="55" y2="155" stroke="#4DA2FF" stroke-width="1" opacity="0.2"/>
+    <line x1="155" y1="165" x2="145" y2="155" stroke="#4DA2FF" stroke-width="1" opacity="0.2"/>
+    <!-- Orbiting ring -->
+    <ellipse cx="100" cy="100" rx="40" ry="40" fill="none" stroke="#4DA2FF" stroke-width="0.8" opacity="0.25"
+             stroke-dasharray="6 4"/>
+  </g>
+</svg>
