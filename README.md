@@ -52,7 +52,7 @@ rm -rf ~/.claude.bak
 | Category | Path |
 |----------|------|
 | Global instructions | `CLAUDE.md` |
-| Skills (20) | `skills/` |
+| Skills (15) | `skills/` |
 | Commands (2) | `commands/` |
 | Global permissions | `settings.local.json` |
 | User settings (hooks, plugins, env) | `settings.json` |
@@ -78,31 +78,26 @@ See `.gitignore` for the complete list.
 
 ## What's Inside
 
-### Skills (20)
+### Skills (15)
 
 #### Sui / Move / Blockchain
 
 | Skill | Description |
 |-------|-------------|
 | `move-code-quality` | Analyzes Move packages against the Move Book Code Quality Checklist *(submodule)* |
-| `sui-marp-theme` | Applies Sui corporate dark theme to Marp slide markdown (17+ layout classes, product illustrations) |
-| `sui-move-toml-migration` | Migrates Move.toml from pre-v1.63 to new package manager format |
+| `move-code-review` | Security, architecture, and design review for Sui Move contracts *(submodule)* |
+| `sui-marp-theme` | Applies Sui corporate theme to Marp slide markdown (20+ layout classes, product illustrations) |
 | `sui-move-tip` | Concise Move/Sui feature summaries for sharing on Slack |
 | `sui-2-migration-audit` | Audits TypeScript codebases for Sui SDK 2.0 migration completeness |
-| `seal-owned-object-setsender` | Fix for Seal decryption failing on owned object sender mismatch |
 | `sui-balance-json-parsing` | Correct JSON structure and TypeScript parsing for Sui Balance fields |
-| `sui-vector-u8-base64-parsing` | Fix for silent failures parsing Move `vector<u8>` from gRPC/JSON-RPC |
-| `sui-wallet-standard-v2-protocol` | Fix for custom wallets sending empty bytes with dApp Kit v2 |
 
 #### General
 
 | Skill | Description |
 |-------|-------------|
 | `game-design` | Creates mechanics-focused Game Design Documents through guided interaction |
-| `claudeception` | Continuous learning system — extracts reusable skills from work sessions *(submodule)* |
 | `pdf-visual-to-css-svg` | Translates visual design from PDFs into CSS themes and SVG assets |
 | `technical-docs-to-learning-materials` | Transforms reference docs into structured educational content |
-| `zsh-special-variable-clobbering` | Fix for zsh prompt disappearing after function execution |
 | `cli-documentation-verification` | Verifies CLI tool docs against the actual installed binary |
 | `corpus-qa-skill-pattern` | Architectural pattern for building Q&A skills over large doc corpora |
 | `for-dummies` | Generates plain-English intro guides by reading the actual codebase |
@@ -160,7 +155,7 @@ The `sui-pilot/` submodule provides 500+ doc files extracted from official sourc
 | Submodule | Path | Source |
 |-----------|------|--------|
 | move-code-quality | `skills/move-code-quality/` | [1NickPappas/move-code-quality-skill](https://github.com/1NickPappas/move-code-quality-skill) |
-| claudeception | `skills/claudeception/` | [blader/Claudeception](https://github.com/blader/Claudeception) |
+| move-code-review | `skills/move-code-review/` | [MystenLabs/move-code-review-skill](https://github.com/MystenLabs/move-code-review-skill) |
 | sui-pilot | `sui-pilot/` | [alilloig/sui-pilot](https://github.com/alilloig/sui-pilot) |
 
 ```bash

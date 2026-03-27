@@ -1,9 +1,6 @@
 [submodule "skills/move-code-quality"]
 	path = skills/move-code-quality
 	url = https://github.com/1NickPappas/move-code-quality-skill
-[submodule "skills/claudeception"]
-	path = skills/claudeception
-	url = https://github.com/blader/Claudeception.git
 [submodule "sui-pilot"]
 	path = sui-pilot
 	url = git@github.com:alilloig/sui-pilot.git
