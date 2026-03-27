@@ -52,7 +52,7 @@ rm -rf ~/.claude.bak
 | Category | Path |
 |----------|------|
 | Global instructions | `CLAUDE.md` |
-| Skills (19) | `skills/` |
+| Skills (20) | `skills/` |
 | Commands (2) | `commands/` |
 | Global permissions | `settings.local.json` |
 | User settings (hooks, plugins, env) | `settings.json` |
@@ -78,14 +78,14 @@ See `.gitignore` for the complete list.
 
 ## What's Inside
 
-### Skills (19)
+### Skills (20)
 
 #### Sui / Move / Blockchain
 
 | Skill | Description |
 |-------|-------------|
 | `move-code-quality` | Analyzes Move packages against the Move Book Code Quality Checklist *(submodule)* |
-| `sui-marp-slide` | Creates Sui-branded Marp presentations with dark corporate theme |
+| `sui-marp-theme` | Applies Sui corporate dark theme to Marp slide markdown (17+ layout classes, product illustrations) |
 | `sui-move-toml-migration` | Migrates Move.toml from pre-v1.63 to new package manager format |
 | `sui-move-tip` | Concise Move/Sui feature summaries for sharing on Slack |
 | `sui-2-migration-audit` | Audits TypeScript codebases for Sui SDK 2.0 migration completeness |
@@ -107,6 +107,7 @@ See `.gitignore` for the complete list.
 | `corpus-qa-skill-pattern` | Architectural pattern for building Q&A skills over large doc corpora |
 | `for-dummies` | Generates plain-English intro guides by reading the actual codebase |
 | `codex-bridge` | Integration between Claude Code and OpenAI Codex CLI via MCP |
+| `marp-slide-content` | Turns source material into well-structured generic Marp slide markdown |
 | `cli-agent-mcp-integration` | Pattern for integrating external CLI agents via MCP server mode |
 
 ### Commands (2)
