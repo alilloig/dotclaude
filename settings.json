@@ -21,7 +21,6 @@
     "code-review@claude-plugins-official": true,
     "code-simplifier@claude-plugins-official": true,
     "commit-commands@claude-plugins-official": true,
-    "explanatory-output-style@claude-plugins-official": true,
     "feature-dev@claude-plugins-official": true,
     "frontend-design@claude-plugins-official": true,
     "github@claude-plugins-official": false,
@@ -47,7 +46,17 @@
     "gopls-lsp@claude-plugins-official": true,
     "legalzoom@claude-plugins-official": true,
     "mcp-server-dev@claude-plugins-official": true,
-    "notion@claude-plugins-official": true
+    "notion@claude-plugins-official": false,
+    "chrome-devtools-mcp@claude-plugins-official": true,
+    "impeccable@impeccable": true
+  },
+  "extraKnownMarketplaces": {
+    "impeccable": {
+      "source": {
+        "source": "github",
+        "repo": "pbakaus/impeccable"
+      }
+    }
   },
   "effortLevel": "high",
   "skipDangerousModePermissionPrompt": true

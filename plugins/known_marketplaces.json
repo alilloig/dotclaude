@@ -5,6 +5,14 @@
       "repo": "anthropics/claude-plugins-official"
     },
     "installLocation": "/Users/alilloig/.claude/plugins/marketplaces/claude-plugins-official",
-    "lastUpdated": "2026-03-27T10:17:26.837Z"
+    "lastUpdated": "2026-03-27T11:38:32.260Z"
+  },
+  "impeccable": {
+    "source": {
+      "source": "github",
+      "repo": "pbakaus/impeccable"
+    },
+    "installLocation": "/Users/alilloig/.claude/plugins/marketplaces/impeccable",
+    "lastUpdated": "2026-03-27T11:30:55.190Z"
   }
 }

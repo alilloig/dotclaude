@@ -1,21 +1,22 @@
 ---
 marp: true
 paginate: true
-footer: "Sui"
+footer: "![w:16](assets/images/sui-logo.svg) Sui"
 ---
+
+<!--
+  SUI CORPORATE TEMPLATE — Dual Theme (Dark default + White)
+  This file is the canonical reference for all Sui Marp layout classes.
+  Copy the <style> block into any new deck to get the full theme.
+  Render: marp slides.md --html
+-->
 
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-/* ============================================================
-   SUI CORPORATE THEME — Embedded CSS
-   Palette: black bg · white headings · #8B8B8B body · #4DA2FF accent
-   Canonical size: 1280 × 720 (16:9)
-   ============================================================ */
-
-/* ----- Base Section ----- */
+/* === BASE — DARK THEME (default) === */
 section {
-  background: #000000 !important;
+  background: #000000;
   color: #8B8B8B;
   font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-size: 22px;
@@ -27,1282 +28,840 @@ section {
   position: relative;
 }
 
-/* ----- Typography ----- */
-section h1 {
-  color: #FFFFFF;
-  font-size: 42px;
-  font-weight: 700;
-  line-height: 1.2;
-  margin: 0 0 16px 0;
-}
-
-section h2 {
-  color: #FFFFFF;
-  font-size: 32px;
-  font-weight: 600;
-  line-height: 1.3;
-  margin: 0 0 12px 0;
-}
-
-section h3 {
-  color: #FFFFFF;
-  font-size: 24px;
-  font-weight: 600;
-  line-height: 1.3;
-  margin: 0 0 8px 0;
-}
-
-section h4 {
-  color: #8B8B8B;
-  font-size: 20px;
-  font-weight: 500;
-  line-height: 1.4;
-  margin: 0 0 8px 0;
-}
-
-section p {
-  margin: 0 0 12px 0;
-}
-
-section strong {
-  color: #FFFFFF !important;
-  font-weight: 600;
-}
-
-section em {
-  color: #4DA2FF;
-  font-style: normal;
-}
-
-section a {
-  color: #4DA2FF;
-  text-decoration: none;
-}
-
-section code {
-  background: #1A1A1A;
-  color: #4DA2FF;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 0.9em;
-}
-
-section pre {
-  background: #0A0A0A;
-  border: 1px solid #3A3A3A;
-  border-radius: 8px;
-  padding: 20px;
-  margin: 12px 0;
-}
-
-section pre code {
-  background: transparent;
-  padding: 0;
-}
-
-section ul, section ol {
-  margin: 0 0 12px 0;
-  padding-left: 24px;
-}
-
-section li {
-  margin-bottom: 6px;
-}
-
-section li::marker {
-  color: #4DA2FF;
-}
-
-section blockquote {
-  border-left: 3px solid #4DA2FF;
-  padding-left: 16px;
-  margin: 12px 0;
-  color: #AAAAAA;
-}
-
-section table {
-  width: 100%;
-  border-collapse: collapse;
-  margin: 12px 0;
-}
-
-section th {
-  color: #FFFFFF !important;
-  background: #000000 !important;
-  font-weight: 600;
-  text-align: left;
-  padding: 10px 16px;
-  border-bottom: 2px solid #4DA2FF;
-}
-
-section td {
-  padding: 8px 16px;
-  border-bottom: 1px solid #1A1A1A;
-  background: #000000 !important;
-}
-
-section hr {
-  border: none;
-  border-top: 1px dashed #3A3A3A;
-  margin: 24px 0;
-}
-
-/* ----- Pagination ----- */
-section::after {
-  color: #4DA2FF;
-  font-size: 14px;
-  font-weight: 600;
-  background: rgba(77, 162, 255, 0.1);
-  border-radius: 12px;
-  padding: 2px 10px;
-}
-
-/* ----- Footer ----- */
-section footer {
-  color: #8B8B8B;
-  font-size: 14px;
-  position: absolute;
-  bottom: 24px;
-  left: 60px;
-}
-
-/* ----- Header ----- */
-section header {
-  color: #4DA2FF;
-  font-size: 14px;
-  font-weight: 500;
-  position: absolute;
-  top: 24px;
-  right: 60px;
-}
-
-/* ============================================================
-   GRID SYSTEM
-   ============================================================ */
-
-section .grid {
-  display: grid;
-  gap: 24px;
-  width: 100%;
-  height: auto;
-}
-
-section .col {
-  display: flex;
-  flex-direction: column;
-}
-
-section .col h3 {
-  margin-bottom: 8px;
-}
-
-section .col p {
-  font-size: 18px;
-  margin: 0;
-}
-
-/* Blue square marker for column headings */
-section .col h3::before {
-  content: '';
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  background: #4DA2FF;
-  margin-right: 10px;
-  vertical-align: middle;
-}
-
-/* Dotted separator above columns */
-section .col {
-  border-top: 1px dashed #3A3A3A;
-  padding-top: 16px;
-}
-
-/* Stat number styling */
-section .stat {
-  color: #FFFFFF;
-  font-size: 48px;
-  font-weight: 700;
-  line-height: 1;
-  margin-bottom: 4px;
-}
-
-section .stat-label {
-  color: #8B8B8B;
-  font-size: 16px;
-}
-
-section .stat-large {
-  color: #FFFFFF;
-  font-size: 72px;
-  font-weight: 700;
-  line-height: 1;
-  margin-bottom: 8px;
-}
-
-/* Card item for list layouts */
-section .card {
-  background: #0A0A0A;
-  border: 1px solid #1A1A1A;
-  border-radius: 8px;
-  padding: 16px 20px;
-  margin-bottom: 8px;
-}
-
-section .card h4 {
-  color: #FFFFFF;
-  margin: 0 0 4px 0;
-}
-
-section .card p {
-  margin: 0;
-  font-size: 16px;
-}
-
-/* Product icon container */
-section .icon {
-  width: 48px;
-  height: 48px;
-  margin-bottom: 12px;
-}
-
-section .icon img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-
-/* ============================================================
-   LAYOUT: lead — Cover / Title Slide
-   ============================================================ */
-section.lead {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  padding-bottom: 80px;
-}
-
-section.lead h1 {
-  font-size: 64px;
-  font-weight: 700;
-  margin-bottom: 16px;
-}
-
-section.lead p {
-  font-size: 24px;
-  color: #8B8B8B;
-  max-width: 70%;
-}
-
-/* ============================================================
-   LAYOUT: cols-4 — Four Columns with markers + body
-   ============================================================ */
-section.cols-4 .grid {
-  grid-template-columns: repeat(4, 1fr);
-  margin-top: 24px;
-}
-
-/* ============================================================
-   LAYOUT: cols-3 — Three Columns
-   ============================================================ */
-section.cols-3 .grid {
-  grid-template-columns: repeat(3, 1fr);
-  margin-top: 24px;
-}
-
-/* ============================================================
-   LAYOUT: cols-2-center — Two Columns, centered title
-   ============================================================ */
-section.cols-2-center {
-  text-align: center;
-}
-
-section.cols-2-center h1 {
-  text-align: center;
-  width: 100%;
-}
-
-section.cols-2-center .grid {
-  grid-template-columns: repeat(2, 1fr);
-  margin-top: 24px;
-  text-align: left;
-}
-
-/* ============================================================
-   LAYOUT: grid-2x2 — 2×2 Grid, centered title
-   ============================================================ */
-section.grid-2x2 {
-  text-align: center;
-}
-
-section.grid-2x2 h1 {
-  text-align: center;
-  width: 100%;
-}
-
-section.grid-2x2 .grid {
-  grid-template-columns: repeat(2, 1fr);
-  grid-template-rows: repeat(2, auto);
-  margin-top: 24px;
-  text-align: left;
-}
-
-/* ============================================================
-   LAYOUT: cols-4-minimal — Four Columns, headlines only
-   ============================================================ */
-section.cols-4-minimal .grid {
-  grid-template-columns: repeat(4, 1fr);
-  margin-top: 40px;
-}
-
-section.cols-4-minimal .col {
-  padding-top: 24px;
-}
-
-section.cols-4-minimal .col p {
-  display: none;
-}
-
-/* ============================================================
-   LAYOUT: fullbleed — Full bleed image, no padding
-   ============================================================ */
-section.fullbleed {
-  padding: 0;
-}
-
-section.fullbleed img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-/* ============================================================
-   LAYOUT: cols-4-icon — Four Columns with product icons
-   ============================================================ */
-section.cols-4-icon .grid {
-  grid-template-columns: repeat(4, 1fr);
-  margin-top: 24px;
-}
-
-section.cols-4-icon .col h3::before {
-  display: none;
-}
-
-/* ============================================================
-   LAYOUT: cols-4-stats — Four Columns with large stat numbers
-   ============================================================ */
-section.cols-4-stats .grid {
-  grid-template-columns: repeat(4, 1fr);
-  margin-top: 24px;
-}
-
-section.cols-4-stats .col {
-  text-align: center;
-  border-top: none;
-  padding-top: 0;
-}
-
-section.cols-4-stats .stat {
-  font-size: 56px;
-  color: #4DA2FF;
-}
-
-section.cols-4-stats .stat-label {
-  font-size: 18px;
-  color: #8B8B8B;
-}
-
-/* ============================================================
-   LAYOUT: stats-side — Title+body left, stacked stats right
-   ============================================================ */
-section.stats-side {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 40px;
-  align-items: center;
-}
-
-section.stats-side .content {
-  display: flex;
-  flex-direction: column;
-}
-
-section.stats-side .stats {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-section.stats-side .stat-row {
-  border-top: 1px dashed #3A3A3A;
-  padding-top: 16px;
-}
-
-/* ============================================================
-   LAYOUT: stats-left — Large stacked stats, left-aligned
-   ============================================================ */
-section.stats-left {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-section.stats-left .grid {
-  grid-template-columns: 1fr;
-  gap: 32px;
-}
-
-section.stats-left .stat-large {
-  font-size: 80px;
-  color: #FFFFFF;
-}
-
-section.stats-left .stat-label {
-  font-size: 20px;
-  color: #8B8B8B;
-  margin-top: 4px;
-}
-
-/* ============================================================
-   LAYOUT: split-right — Title+body right-aligned
-   ============================================================ */
-section.split-right {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  text-align: right;
-}
-
-section.split-right h1,
-section.split-right p {
-  max-width: 55%;
-}
-
-/* ============================================================
-   LAYOUT: list-right — Title right, stacked cards
-   ============================================================ */
-section.list-right {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 40px;
-  align-items: start;
-}
-
-section.list-right .content {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  height: 100%;
-}
-
-section.list-right .cards {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-/* ============================================================
-   LAYOUT: grid-products — 4×2 product grid with icons
-   ============================================================ */
-section.grid-products .grid {
-  grid-template-columns: repeat(4, 1fr);
-  grid-template-rows: repeat(2, auto);
-  gap: 16px;
-  margin-top: 24px;
-}
-
-section.grid-products .col {
-  border-top: none;
-  padding-top: 12px;
-  text-align: center;
-  align-items: center;
-}
-
-section.grid-products .col h3::before {
-  display: none;
-}
-
-section.grid-products .icon {
-  width: 56px;
-  height: 56px;
-  margin: 0 auto 8px auto;
-}
-
-/* ============================================================
-   LAYOUT: grid-images — 4×2 image placeholder grid
-   ============================================================ */
-section.grid-images .grid {
-  grid-template-columns: repeat(4, 1fr);
-  grid-template-rows: repeat(2, 1fr);
-  gap: 12px;
-  margin-top: 24px;
-  height: calc(100% - 100px);
-}
-
-section.grid-images .col {
-  border-top: none;
-  padding-top: 0;
-  background: #0A0A0A;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-section.grid-images .col img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-/* ============================================================
-   PRODUCT HERO SLIDES
-   ============================================================ */
-section.product-seal,
-section.product-deepbook,
-section.product-walrus,
-section.product-suins,
-section.product-sui,
-section.product-mysticeti,
-section.product-nautilus,
-section.product-passkey,
-section.product-zklogin,
-section.product-move {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  overflow: hidden;
-}
-
-section.product-seal::before,
-section.product-deepbook::before,
-section.product-walrus::before,
-section.product-suins::before,
-section.product-sui::before,
-section.product-mysticeti::before,
-section.product-nautilus::before,
-section.product-passkey::before,
-section.product-zklogin::before,
-section.product-move::before {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 160px;
-  font-weight: 700;
-  color: rgba(255, 255, 255, 0.03);
-  text-transform: uppercase;
-  white-space: nowrap;
-  pointer-events: none;
-  z-index: 0;
-}
-
-section.product-seal::before { content: 'SEAL'; }
-section.product-deepbook::before { content: 'DEEPBOOK'; }
-section.product-walrus::before { content: 'WALRUS'; }
-section.product-suins::before { content: 'SUINS'; }
-section.product-sui::before { content: 'SUI'; font-size: 220px; }
-section.product-mysticeti::before { content: 'MYSTICETI'; }
-section.product-nautilus::before { content: 'NAUTILUS'; }
-section.product-passkey::before { content: 'PASSKEY'; }
-section.product-zklogin::before { content: 'ZKLOGIN'; }
-section.product-move::before { content: 'MOVE'; font-size: 200px; }
-
-section.product-seal > *,
-section.product-deepbook > *,
-section.product-walrus > *,
-section.product-suins > *,
-section.product-sui > *,
-section.product-mysticeti > *,
-section.product-nautilus > *,
-section.product-passkey > *,
-section.product-zklogin > *,
-section.product-move > * {
-  position: relative;
-  z-index: 1;
-}
-
-section.product-seal h1,
-section.product-deepbook h1,
-section.product-walrus h1,
-section.product-suins h1,
-section.product-sui h1,
-section.product-mysticeti h1,
-section.product-nautilus h1,
-section.product-passkey h1,
-section.product-zklogin h1,
-section.product-move h1 {
-  font-size: 56px;
-  margin-top: 16px;
-}
-
-section.product-seal p,
-section.product-deepbook p,
-section.product-walrus p,
-section.product-suins p,
-section.product-sui p,
-section.product-mysticeti p,
-section.product-nautilus p,
-section.product-passkey p,
-section.product-zklogin p,
-section.product-move p {
-  font-size: 22px;
-  max-width: 600px;
-}
-
-/* ============================================================
-   PRODUCT CONTENT SLIDES
-   ============================================================ */
-section.product-seal-content,
-section.product-deepbook-content,
-section.product-walrus-content,
-section.product-suins-content,
-section.product-sui-content,
-section.product-mysticeti-content,
-section.product-nautilus-content,
-section.product-passkey-content,
-section.product-zklogin-content,
-section.product-move-content {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 40px;
-  align-items: center;
-}
-
-section.product-seal-content .content,
-section.product-deepbook-content .content,
-section.product-walrus-content .content,
-section.product-suins-content .content,
-section.product-sui-content .content,
-section.product-mysticeti-content .content,
-section.product-nautilus-content .content,
-section.product-passkey-content .content,
-section.product-zklogin-content .content,
-section.product-move-content .content {
-  display: flex;
-  flex-direction: column;
-}
-
-section.product-seal-content .illustration,
-section.product-deepbook-content .illustration,
-section.product-walrus-content .illustration,
-section.product-suins-content .illustration,
-section.product-sui-content .illustration,
-section.product-mysticeti-content .illustration,
-section.product-nautilus-content .illustration,
-section.product-passkey-content .illustration,
-section.product-zklogin-content .illustration,
-section.product-move-content .illustration {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-section.product-seal-content .illustration img,
-section.product-deepbook-content .illustration img,
-section.product-walrus-content .illustration img,
-section.product-suins-content .illustration img,
-section.product-sui-content .illustration img,
-section.product-mysticeti-content .illustration img,
-section.product-nautilus-content .illustration img,
-section.product-passkey-content .illustration img,
-section.product-zklogin-content .illustration img,
-section.product-move-content .illustration img {
-  max-width: 100%;
-  max-height: 400px;
-  object-fit: contain;
-}
-
-/* ============================================================
-   UTILITY CLASSES
-   ============================================================ */
-section .text-center { text-align: center; }
-section .text-right { text-align: right; }
+section h1 { color: #FFFFFF; font-size: 42px; font-weight: 700; line-height: 1.15; margin: 0 0 16px 0; letter-spacing: -0.02em; }
+section h2 { color: #FFFFFF; font-size: 32px; font-weight: 600; line-height: 1.25; margin: 0 0 12px 0; }
+section h3 { color: #FFFFFF; font-size: 24px; font-weight: 600; line-height: 1.3; margin: 0 0 8px 0; }
+section h4 { color: #8B8B8B; font-size: 20px; font-weight: 500; line-height: 1.4; margin: 0 0 8px 0; }
+section p { margin: 0 0 12px 0; }
+section strong { color: #FFFFFF; font-weight: 600; }
+section em { color: #4DA2FF; font-style: normal; }
+section a { color: #4DA2FF; text-decoration: none; }
+section code { background: #1A1A1A; color: #4DA2FF; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
+section pre { background: #0A0A0A; border: 1px solid #3A3A3A; border-radius: 8px; padding: 20px; margin: 12px 0; }
+section pre code { background: transparent; padding: 0; }
+section ul, section ol { margin: 0 0 12px 0; padding-left: 24px; }
+section li { margin-bottom: 6px; }
+section li::marker { color: #4DA2FF; }
+section blockquote { border-left: 3px solid #4DA2FF; padding-left: 16px; margin: 12px 0; color: #AAAAAA; }
+section table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+section th { color: #FFFFFF; background: #000000; font-weight: 600; text-align: left; padding: 10px 16px; border-bottom: 2px solid #4DA2FF; }
+section td { padding: 8px 16px; border-bottom: 1px solid #1A1A1A; background: #000000; }
+section hr { border: none; border-top: 1px dashed #3A3A3A; margin: 24px 0; }
+
+/* Pagination */
+section::after { color: #4DA2FF; font-size: 14px; font-weight: 600; background: rgba(77,162,255,0.1); border-radius: 12px; padding: 2px 10px; }
+
+/* Footer & Header */
+section footer { color: #8B8B8B; font-size: 14px; position: absolute; bottom: 24px; left: 60px; }
+section header { color: #4DA2FF; font-size: 14px; font-weight: 500; position: absolute; top: 24px; right: 60px; }
+
+/* === WHITE / LIGHT THEME === */
+section.white, section.light { background: #FFFFFF; color: #6B6B6B; }
+section.white h1, section.light h1 { color: #000000; }
+section.white h2, section.light h2 { color: #000000; }
+section.white h3, section.light h3 { color: #000000; }
+section.white h4, section.light h4 { color: #6B6B6B; }
+section.white strong, section.light strong { color: #000000; }
+section.white em, section.light em { color: #4DA2FF; font-style: normal; }
+section.white code, section.light code { background: #F0F0F0; color: #4DA2FF; }
+section.white pre, section.light pre { background: #F5F5F5; border: 1px solid #E0E0E0; }
+section.white th, section.light th { color: #000000; background: #FFFFFF; border-bottom: 2px solid #4DA2FF; }
+section.white td, section.light td { background: #FFFFFF; border-bottom: 1px solid #E8E8E8; }
+section.white hr, section.light hr { border-top: 1px dashed #D0D0D0; }
+section.white footer, section.light footer { color: #6B6B6B; }
+section.white::after, section.light::after { color: #4DA2FF; background: rgba(77,162,255,0.08); }
+section.white .col, section.light .col { border-top-color: #D0D0D0; }
+section.white .card, section.light .card { background: #F5F5F5; border-color: #E8E8E8; }
+section.white .card h4, section.light .card h4 { color: #000000; }
+section.white .stat, section.light .stat { color: #000000; }
+section.white .stat-large, section.light .stat-large { color: #000000; }
+section.white .stat-label, section.light .stat-label { color: #6B6B6B; }
+
+/* === GRID SYSTEM === */
+section .grid { display: grid; gap: 24px; width: 100%; height: auto; }
+section .col { display: flex; flex-direction: column; border-top: 1px dashed #3A3A3A; padding-top: 16px; }
+section .col h3 { margin-bottom: 8px; }
+section .col p { font-size: 18px; margin: 0; }
+
+/* Category label */
+section .category { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #8B8B8B; font-family: 'Inter', monospace; margin-bottom: 8px; }
+section .category::before { content: ''; display: inline-block; width: 8px; height: 8px; background: #4DA2FF; flex-shrink: 0; }
+section.white .category, section.light .category { color: #6B6B6B; }
+
+/* Column heading markers — blue square */
+section .col h3::before { content: ''; display: inline-block; width: 8px; height: 8px; background: #4DA2FF; margin-right: 10px; vertical-align: middle; }
+
+/* Droplet icon marker variant — use class="col icon-marker" */
+section .col.icon-marker h3::before { content: ''; width: 20px; height: 20px; background: none; margin-right: 8px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M12 2C12 2 5 10 5 14.5C5 18.09 8.13 21 12 21C15.87 21 19 18.09 19 14.5C19 10 12 2 12 2Z' stroke='%234DA2FF' stroke-width='1.5' fill='none'/%3E%3Cpath d='M12 18C14.21 18 16 16.21 16 14C16 11 12 6 12 6C12 6 8 11 8 14C8 16.21 9.79 18 12 18Z' stroke='%234DA2FF' stroke-width='1' fill='none'/%3E%3C/svg%3E"); background-size: contain; background-repeat: no-repeat; }
+
+/* Stats */
+section .stat { color: #FFFFFF; font-size: 48px; font-weight: 700; line-height: 1; margin-bottom: 4px; }
+section .stat-label { color: #8B8B8B; font-size: 16px; }
+section .stat-large { color: #FFFFFF; font-size: 72px; font-weight: 700; line-height: 1; margin-bottom: 8px; }
+
+/* Cards */
+section .card { background: #0A0A0A; border: 1px solid #1A1A1A; border-radius: 8px; padding: 16px 20px; margin-bottom: 8px; }
+section .card h4 { color: #FFFFFF; margin: 0 0 4px 0; }
+section .card p { margin: 0; font-size: 16px; }
+
+/* Icon container */
+section .icon { width: 48px; height: 48px; margin-bottom: 12px; }
+section .icon img { width: 100%; height: 100%; object-fit: contain; }
+
+/* === LAYOUT: lead === */
+section.lead { display: flex; flex-direction: column; justify-content: flex-end; padding-bottom: 80px; }
+section.lead h1 { font-size: 64px; font-weight: 700; margin-bottom: 16px; letter-spacing: -0.03em; }
+section.lead p { font-size: 24px; color: #8B8B8B; max-width: 70%; }
+section.white.lead p, section.light.lead p { color: #6B6B6B; }
+
+/* === LAYOUT: cover-gradient === */
+section.cover-gradient { display: flex; flex-direction: column; justify-content: flex-start; padding-top: 60px; color: #FFFFFF; }
+section.cover-gradient h1 { font-size: 56px; font-weight: 700; color: #FFFFFF; letter-spacing: -0.03em; margin-bottom: 16px; position: relative; z-index: 1; }
+section.cover-gradient p { font-size: 22px; color: rgba(255,255,255,0.85); max-width: 60%; position: relative; z-index: 1; }
+section.cover-gradient footer, section.cover-gradient::after { display: none; }
+
+/* === LAYOUT: cover-stripes === */
+section.cover-stripes { display: flex; flex-direction: column; justify-content: flex-start; padding-top: 60px; color: #FFFFFF; }
+section.cover-stripes h1 { font-size: 56px; font-weight: 700; color: #FFFFFF; letter-spacing: -0.03em; margin-bottom: 16px; position: relative; z-index: 1; }
+section.cover-stripes p { font-size: 22px; color: rgba(255,255,255,0.85); max-width: 60%; position: relative; z-index: 1; }
+section.cover-stripes footer, section.cover-stripes::after { display: none; }
+
+/* === LAYOUT: section-break === */
+section.section-break { display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
+section.section-break h1 { font-size: 48px; font-weight: 700; letter-spacing: -0.02em; }
+section.section-break footer, section.section-break::after { display: none; }
+
+/* === LAYOUT: quote === */
+section.quote { display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 80px 120px; }
+section.quote p { font-size: 36px; font-weight: 500; color: #FFFFFF; line-height: 1.4; max-width: 900px; position: relative; z-index: 1; }
+section.quote footer, section.quote::after { display: none; }
+section.white.quote p, section.light.quote p { color: #000000; }
+
+/* === LAYOUT: toc === */
+section.toc { display: grid; grid-template-columns: 1fr 1fr; gap: 0; padding: 0; }
+section.toc .toc-left { display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 60px; position: relative; overflow: hidden; }
+section.toc .toc-left h1 { font-size: 56px; font-weight: 700; color: #FFFFFF; position: relative; z-index: 1; }
+section.toc .toc-right { display: flex; flex-direction: column; justify-content: center; padding: 60px; }
+section.toc .toc-item { display: flex; align-items: baseline; gap: 16px; padding: 12px 0; font-size: 22px; font-weight: 600; }
+section.toc .toc-item .toc-num { font-size: 18px; font-weight: 700; color: #8B8B8B; min-width: 30px; }
+section.toc .toc-item .toc-label { color: #FFFFFF; font-weight: 600; }
+section.white.toc .toc-item .toc-label, section.light.toc .toc-item .toc-label { color: #000000; }
+
+/* === LAYOUT: content === */
+section.content { display: flex; flex-direction: column; justify-content: flex-start; align-items: flex-start; }
+section.content h1 { font-size: 42px; margin-bottom: 16px; }
+section.content p { max-width: 45%; font-size: 20px; }
+
+/* === COLUMN LAYOUTS === */
+section.cols-4 .grid { grid-template-columns: repeat(4, 1fr); margin-top: 24px; }
+section.cols-3 .grid { grid-template-columns: repeat(3, 1fr); margin-top: 24px; }
+section.cols-2-center { text-align: center; }
+section.cols-2-center h1 { text-align: center; width: 100%; }
+section.cols-2-center .grid { grid-template-columns: repeat(2, 1fr); margin-top: 24px; text-align: center; }
+section.cols-2-center .col { align-items: center; }
+
+section.grid-2x2 { text-align: center; }
+section.grid-2x2 h1 { text-align: center; width: 100%; }
+section.grid-2x2 .grid { grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(2, auto); margin-top: 24px; text-align: center; }
+section.grid-2x2 .col { align-items: center; }
+
+section.cols-4-minimal .grid { grid-template-columns: repeat(4, 1fr); margin-top: 40px; }
+section.cols-4-minimal .col { padding-top: 24px; }
+section.cols-4-minimal .col p { display: none; }
+
+section.fullbleed { padding: 0; }
+section.fullbleed img { width: 100%; height: 100%; object-fit: cover; }
+
+section.cols-4-icon .grid { grid-template-columns: repeat(4, 1fr); margin-top: 24px; }
+section.cols-4-icon .col h3::before { display: none; }
+
+/* === STATS LAYOUTS === */
+section.cols-4-stats .grid { grid-template-columns: repeat(4, 1fr); margin-top: 24px; }
+section.cols-4-stats .col { text-align: left; border-top: 1px dashed #3A3A3A; padding-top: 16px; }
+section.cols-4-stats .stat { font-size: 48px; color: #FFFFFF; }
+section.cols-4-stats .stat-label { font-size: 18px; color: #8B8B8B; }
+section.white.cols-4-stats .col, section.light.cols-4-stats .col { border-top-color: #D0D0D0; }
+section.white.cols-4-stats .stat, section.light.cols-4-stats .stat { color: #000000; }
+
+section.stats-side { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; }
+section.stats-side .content { display: flex; flex-direction: column; }
+section.stats-side .stats { display: flex; flex-direction: column; gap: 24px; }
+section.stats-side .stat-row { border-top: 1px dashed #3A3A3A; padding-top: 16px; }
+section.white.stats-side .stat-row, section.light.stats-side .stat-row { border-top-color: #D0D0D0; }
+
+section.stats-left { display: flex; flex-direction: column; justify-content: center; }
+section.stats-left .grid { grid-template-columns: 1fr; gap: 8px; max-width: 50%; }
+section.stats-left .col { border-top: 1px dashed #3A3A3A; padding-top: 16px; }
+section.stats-left .stat-large { font-size: 80px; color: #FFFFFF; }
+section.stats-left .stat-label { font-size: 20px; color: #8B8B8B; margin-top: 4px; }
+section.white.stats-left .stat-large, section.light.stats-left .stat-large { color: #000000; }
+section.white.stats-left .col, section.light.stats-left .col { border-top-color: #D0D0D0; }
+
+/* === SPLIT/LIST LAYOUTS === */
+section.split-right { display: flex; flex-direction: column; align-items: flex-end; justify-content: flex-start; text-align: left; }
+section.split-right h1, section.split-right p { max-width: 55%; }
+
+section.list-right { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: start; }
+section.list-right .content { display: flex; flex-direction: column; justify-content: center; height: 100%; }
+section.list-right .cards { display: flex; flex-direction: column; gap: 8px; }
+
+/* === SPLIT-IMAGE === */
+section.split-image { display: grid; grid-template-columns: 1fr 1fr; gap: 0; padding: 0; }
+section.split-image .content { display: flex; flex-direction: column; justify-content: flex-start; padding: 60px; }
+section.split-image .images { display: grid; grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; gap: 0; }
+section.split-image .images img { width: 100%; height: 100%; object-fit: cover; }
+
+/* === SPLIT-IMAGE-LEFT === */
+section.split-image-left { display: grid; grid-template-columns: 1fr 1fr; gap: 0; padding: 0; }
+section.split-image-left .images { display: grid; grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; gap: 0; }
+section.split-image-left .images img { width: 100%; height: 100%; object-fit: cover; }
+section.split-image-left .content { display: flex; flex-direction: column; justify-content: flex-start; padding: 60px; }
+
+/* === PRODUCT GRIDS === */
+section.grid-products .grid { grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(2, auto); gap: 16px; margin-top: 24px; }
+section.grid-products .col { border-top: none; padding-top: 12px; text-align: center; align-items: center; }
+section.grid-products .col h3::before { display: none; }
+section.grid-products .icon { width: 56px; height: 56px; margin: 0 auto 8px auto; }
+
+section.grid-images .grid { grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(2, 1fr); gap: 12px; margin-top: 24px; height: calc(100% - 100px); }
+section.grid-images .col { border-top: none; padding-top: 0; background: #0A0A0A; border-radius: 8px; overflow: hidden; }
+section.grid-images .col img { width: 100%; height: 100%; object-fit: cover; }
+section.white.grid-images .col, section.light.grid-images .col { background: #F0F0F0; }
+
+/* === PRODUCT HERO SLIDES === */
+section.product-seal, section.product-deepbook, section.product-walrus, section.product-suins, section.product-sui, section.product-mysticeti, section.product-nautilus, section.product-passkey, section.product-zklogin, section.product-move { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; overflow: hidden; }
+section.product-seal::before, section.product-deepbook::before, section.product-walrus::before, section.product-suins::before, section.product-sui::before, section.product-mysticeti::before, section.product-nautilus::before, section.product-passkey::before, section.product-zklogin::before, section.product-move::before { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 160px; font-weight: 700; color: rgba(255,255,255,0.06); text-transform: capitalize; white-space: nowrap; pointer-events: none; z-index: 0; }
+section.product-seal::before { content: 'Seal'; }
+section.product-deepbook::before { content: 'Deepbook'; }
+section.product-walrus::before { content: 'Walrus'; }
+section.product-suins::before { content: 'SuiNS'; }
+section.product-sui::before { content: 'Sui'; font-size: 220px; }
+section.product-mysticeti::before { content: 'Mysticeti'; }
+section.product-nautilus::before { content: 'Nautilus'; }
+section.product-passkey::before { content: 'Passkey'; }
+section.product-zklogin::before { content: 'zkLogin'; }
+section.product-move::before { content: 'Move'; font-size: 200px; }
+section.product-seal > *, section.product-deepbook > *, section.product-walrus > *, section.product-suins > *, section.product-sui > *, section.product-mysticeti > *, section.product-nautilus > *, section.product-passkey > *, section.product-zklogin > *, section.product-move > * { position: relative; z-index: 1; }
+section.product-seal h1, section.product-deepbook h1, section.product-walrus h1, section.product-suins h1, section.product-sui h1, section.product-mysticeti h1, section.product-nautilus h1, section.product-passkey h1, section.product-zklogin h1, section.product-move h1 { font-size: 56px; margin-top: 16px; }
+
+/* === PRODUCT CONTENT SLIDES === */
+section.product-seal-content, section.product-deepbook-content, section.product-walrus-content, section.product-suins-content, section.product-sui-content, section.product-mysticeti-content, section.product-nautilus-content, section.product-passkey-content, section.product-zklogin-content, section.product-move-content { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; }
+section.product-seal-content h1, section.product-deepbook-content h1, section.product-walrus-content h1, section.product-suins-content h1, section.product-sui-content h1, section.product-mysticeti-content h1, section.product-nautilus-content h1, section.product-passkey-content h1, section.product-zklogin-content h1, section.product-move-content h1 { font-size: 64px; letter-spacing: -0.03em; }
+section.product-seal-content .content, section.product-deepbook-content .content, section.product-walrus-content .content, section.product-suins-content .content, section.product-sui-content .content, section.product-mysticeti-content .content, section.product-nautilus-content .content, section.product-passkey-content .content, section.product-zklogin-content .content, section.product-move-content .content { display: flex; flex-direction: column; }
+section.product-seal-content .illustration, section.product-deepbook-content .illustration, section.product-walrus-content .illustration, section.product-suins-content .illustration, section.product-sui-content .illustration, section.product-mysticeti-content .illustration, section.product-nautilus-content .illustration, section.product-passkey-content .illustration, section.product-zklogin-content .illustration, section.product-move-content .illustration { display: flex; align-items: center; justify-content: center; }
+section.product-seal-content .illustration img, section.product-deepbook-content .illustration img, section.product-walrus-content .illustration img, section.product-suins-content .illustration img, section.product-sui-content .illustration img, section.product-mysticeti-content .illustration img, section.product-nautilus-content .illustration img, section.product-passkey-content .illustration img, section.product-zklogin-content .illustration img, section.product-move-content .illustration img { max-width: 100%; max-height: 400px; object-fit: contain; }
+
+/* Utility */
+section .no-border { border-top: none !important; padding-top: 0 !important; }
 section .accent { color: #4DA2FF; }
-section .muted { color: #555555; }
-section .small { font-size: 16px; }
-section .large { font-size: 28px; }
-section .no-border { border-top: none; padding-top: 0; }
-section .center {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-section .badge {
-  display: inline-block;
-  background: rgba(77, 162, 255, 0.15);
-  color: #4DA2FF;
-  padding: 4px 12px;
-  border-radius: 16px;
-  font-size: 14px;
-  font-weight: 500;
-}
-section .spacer {
-  height: 24px;
-}
+section .badge { display: inline-block; background: rgba(77,162,255,0.15); color: #4DA2FF; padding: 4px 12px; border-radius: 16px; font-size: 14px; font-weight: 500; }
 </style>
 
-<!-- ============================================================
-     SLIDE EXAMPLES — One per layout class
-     ============================================================ -->
+<!-- ===================================================
+     SLIDE 1: Cover with gradient background (DARK)
+     =================================================== -->
+<!-- _class: cover-gradient -->
+<!-- _paginate: false -->
 
+![bg](assets/images/sui-cover.png)
+
+# Presentation Title
+
+Subtitle here
+
+---
+
+<!-- ===================================================
+     SLIDE 2: Lead slide — plain dark background
+     =================================================== -->
 <!-- _class: lead -->
 
-# Sui
-The Boundless Platform
+# 2026 Sui Slides Template
+
+A comprehensive Marp theme matching the Sui corporate deck
 
 ---
 
-# Section Title Slide
+<!-- ===================================================
+     SLIDE 3: Lead slide — WHITE theme
+     =================================================== -->
+<!-- _class: white lead -->
 
-A standard content slide with a heading and body text. Use this for straightforward topic introduction or narrative content.
+# 2026 Sui Slides Template
 
-- Bullet points use blue markers
-- **Bold text** appears white for emphasis
-- *Italic text* renders in accent blue
+A comprehensive Marp theme matching the Sui corporate deck
 
 ---
 
+<!-- ===================================================
+     SLIDE 4: Section Break with BG image
+     =================================================== -->
+<!-- _class: section-break -->
+<!-- _paginate: false -->
+
+![bg](assets/images/sui-cover.png)
+
+# Section Title
+
+---
+
+<!-- ===================================================
+     SLIDE 5: Quote on gradient background (DARK)
+     =================================================== -->
+<!-- _class: quote -->
+<!-- _paginate: false -->
+
+![bg](assets/images/sui-cover.png)
+
+Lorem ipsum dolor sit amet, consectetur adipisc elit.
+
+---
+
+<!-- ===================================================
+     SLIDE 6: Quote — WHITE theme variant
+     =================================================== -->
+<!-- _class: white quote -->
+
+Lorem ipsum dolor sit amet, consectetur adipisc elit.
+
+---
+
+<!-- ===================================================
+     SLIDE 7: Table of Contents (DARK)
+     =================================================== -->
+<!-- _class: toc -->
+<!-- _paginate: false -->
+
+<div class="toc-left" style="background: url('assets/images/sui-cover.png') center/cover;">
+
+# Table of Contents
+
+</div>
+
+<div class="toc-right">
+
+<div class="toc-item"><span class="toc-num">01</span><span class="toc-label">Introduction</span></div>
+<div class="toc-item"><span class="toc-num">02</span><span class="toc-label">Architecture</span></div>
+<div class="toc-item"><span class="toc-num">03</span><span class="toc-label">Products</span></div>
+<div class="toc-item"><span class="toc-num">04</span><span class="toc-label">Performance</span></div>
+<div class="toc-item"><span class="toc-num">05</span><span class="toc-label">Ecosystem</span></div>
+<div class="toc-item"><span class="toc-num">06</span><span class="toc-label">Next Steps</span></div>
+
+</div>
+
+---
+
+<!-- ===================================================
+     SLIDE 8: Content — title + subtitle (DARK)
+     =================================================== -->
+<!-- _class: content -->
+
+# Presentation Title
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean rutrum lorem justo, at blandit metus pharetra ut...
+
+---
+
+<!-- ===================================================
+     SLIDE 9: Content — WHITE theme
+     =================================================== -->
+<!-- _class: white content -->
+
+# Presentation Title
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean rutrum lorem justo, at blandit metus pharetra ut...
+
+---
+
+<!-- ===================================================
+     SLIDE 10: Four Columns with category labels (DARK)
+     =================================================== -->
 <!-- _class: cols-4 -->
 
-# Core Infrastructure
+# Presentation Title
 
 <div class="grid">
 <div class="col">
 
-### Consensus
+<span class="category">HEADLINE HERE</span>
 
-Mysticeti achieves sub-second finality with DAG-based consensus.
+### Headline here
 
-</div>
-<div class="col">
-
-### Execution
-
-Sui's parallel execution engine processes transactions simultaneously.
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean rutrum lorem justo, at blandit metus pharetra ut...
 
 </div>
 <div class="col">
 
-### Storage
+<span class="category">HEADLINE HERE</span>
 
-Object-centric storage enables efficient state management.
+### Headline here
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean rutrum lorem justo, at blandit metus pharetra ut...
 
 </div>
 <div class="col">
 
-### Networking
+<span class="category">HEADLINE HERE</span>
 
-Low-latency P2P networking connects validators globally.
+### Headline here
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean rutrum lorem justo, at blandit metus pharetra ut...
+
+</div>
+<div class="col">
+
+<span class="category">HEADLINE HERE</span>
+
+### Headline here
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean rutrum lorem justo, at blandit metus pharetra ut...
 
 </div>
 </div>
 
 ---
 
+<!-- ===================================================
+     SLIDE 11: Four Columns — WHITE theme
+     =================================================== -->
+<!-- _class: white cols-4 -->
+
+# Presentation Title
+
+<div class="grid">
+<div class="col">
+
+<span class="category">HEADLINE HERE</span>
+
+### Headline here
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean rutrum lorem justo, at blandit metus pharetra ut...
+
+</div>
+<div class="col">
+
+<span class="category">HEADLINE HERE</span>
+
+### Headline here
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean rutrum lorem justo, at blandit metus pharetra ut...
+
+</div>
+<div class="col">
+
+<span class="category">HEADLINE HERE</span>
+
+### Headline here
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean rutrum lorem justo, at blandit metus pharetra ut...
+
+</div>
+<div class="col">
+
+<span class="category">HEADLINE HERE</span>
+
+### Headline here
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean rutrum lorem justo, at blandit metus pharetra ut...
+
+</div>
+</div>
+
+---
+
+<!-- ===================================================
+     SLIDE 12: Three Columns (DARK)
+     =================================================== -->
 <!-- _class: cols-3 -->
 
-# Three Pillars
+# Presentation Title
 
 <div class="grid">
 <div class="col">
 
-### Security
+<span class="category">HEADLINE HERE</span>
 
-End-to-end encryption and formal verification of smart contracts.
-
-</div>
-<div class="col">
-
-### Scalability
-
-Horizontal scaling through object-parallel execution.
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean rutrum lorem justo, at blandit metus pharetra ut...
 
 </div>
 <div class="col">
 
-### Usability
+<span class="category">HEADLINE HERE</span>
 
-Gasless transactions and familiar login flows for end users.
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean rutrum lorem justo, at blandit metus pharetra ut...
+
+</div>
+<div class="col">
+
+<span class="category">HEADLINE HERE</span>
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean rutrum lorem justo, at blandit metus pharetra ut...
 
 </div>
 </div>
 
 ---
 
+<!-- ===================================================
+     SLIDE 13: Two Columns centered (DARK)
+     =================================================== -->
 <!-- _class: cols-2-center -->
 
-# Key Differentiators
+# Presentation Title
 
 <div class="grid">
 <div class="col">
 
-### Object Model
+<span class="category">HEADLINE HERE</span>
 
-Every asset on Sui is a first-class object with unique ownership semantics.
+### Lorem ipsum dolor sit amet, consectetur adipiscing elit
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean rutrum lorem justo, at blandit metus pharetra ut...
 
 </div>
 <div class="col">
 
-### Move Language
+<span class="category">HEADLINE HERE</span>
 
-Purpose-built for safe, verifiable asset management.
+### Lorem ipsum dolor sit amet, consectetur adipiscing elit
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean rutrum lorem justo, at blandit metus pharetra ut...
 
 </div>
 </div>
 
 ---
 
+<!-- ===================================================
+     SLIDE 14: 2x2 Grid (DARK)
+     =================================================== -->
 <!-- _class: grid-2x2 -->
 
-# Platform Overview
+# Presentation Title
 
 <div class="grid">
 <div class="col">
 
-### DeFi
+<span class="category">HEADLINE HERE</span>
 
-DeepBook provides central limit order book liquidity.
-
-</div>
-<div class="col">
-
-### Storage
-
-Walrus delivers decentralized blob storage.
+### Lorem ipsum dolor sit amet, consectetur adipiscing elit
 
 </div>
 <div class="col">
 
-### Identity
+<span class="category">HEADLINE HERE</span>
 
-SuiNS offers human-readable naming services.
+### Lorem ipsum dolor sit amet, consectetur adipiscing elit
 
 </div>
 <div class="col">
 
-### Privacy
+<span class="category">HEADLINE HERE</span>
 
-Seal enables threshold encryption for access control.
+### Lorem ipsum dolor sit amet, consectetur adipiscing elit
+
+</div>
+<div class="col">
+
+<span class="category">HEADLINE HERE</span>
+
+### Lorem ipsum dolor sit amet, consectetur adipiscing elit
 
 </div>
 </div>
 
 ---
 
+<!-- ===================================================
+     SLIDE 15: Four Columns Minimal (DARK)
+     =================================================== -->
 <!-- _class: cols-4-minimal -->
 
-# Key Focus Areas
+# Presentation Title
 
 <div class="grid">
 <div class="col">
 
-### Performance
+<span class="category">HEADLINE HERE</span>
+
+### Area 1
 
 </div>
 <div class="col">
 
-### Security
+<span class="category">HEADLINE HERE</span>
+
+### Area 2
 
 </div>
 <div class="col">
 
-### Developer Experience
+<span class="category">HEADLINE HERE</span>
+
+### Area 3
 
 </div>
 <div class="col">
 
-### User Adoption
+<span class="category">HEADLINE HERE</span>
+
+### Area 4
 
 </div>
 </div>
 
 ---
 
+<!-- ===================================================
+     SLIDE 16: Four Columns with Sui droplet icons (DARK)
+     =================================================== -->
 <!-- _class: cols-4-icon -->
 
-# Ecosystem Products
+# Presentation Title
 
 <div class="grid">
-<div class="col">
+<div class="col icon-marker">
 
-<div class="icon">
+### Headline here
 
-![](../assets/images/product-seal.svg)
-
-</div>
-
-### Seal
-
-Threshold encryption for access control.
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean rutrum lorem justo, at blandit metus pharetra ut...
 
 </div>
-<div class="col">
+<div class="col icon-marker">
 
-<div class="icon">
+### Headline here
 
-![](../assets/images/product-deepbook.svg)
-
-</div>
-
-### DeepBook
-
-On-chain central limit order book.
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean rutrum lorem justo, at blandit metus pharetra ut...
 
 </div>
-<div class="col">
+<div class="col icon-marker">
 
-<div class="icon">
+### Headline here
 
-![](../assets/images/product-walrus.svg)
-
-</div>
-
-### Walrus
-
-Decentralized blob storage.
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean rutrum lorem justo, at blandit metus pharetra ut...
 
 </div>
-<div class="col">
+<div class="col icon-marker">
 
-<div class="icon">
+### Headline here
 
-![](../assets/images/product-suins.svg)
-
-</div>
-
-### SuiNS
-
-Human-readable name service.
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean rutrum lorem justo, at blandit metus pharetra ut...
 
 </div>
 </div>
 
 ---
 
+<!-- ===================================================
+     SLIDE 17: Stats — Four columns (DARK)
+     =================================================== -->
 <!-- _class: cols-4-stats -->
 
-# Network Performance
+# Presentation Title
 
 <div class="grid">
 <div class="col">
 
-<div class="stat">390ms</div>
-<div class="stat-label">Time to Finality</div>
+<span class="category">HEADLINE HERE</span>
+
+<div class="stat">10.3k</div>
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit.
 
 </div>
 <div class="col">
 
-<div class="stat">297K</div>
-<div class="stat-label">Peak TPS</div>
+<span class="category">HEADLINE HERE</span>
+
+<div class="stat">10.3k</div>
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit.
 
 </div>
 <div class="col">
 
-<div class="stat">65B+</div>
-<div class="stat-label">Total Transactions</div>
+<span class="category">HEADLINE HERE</span>
+
+<div class="stat">10.3k</div>
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit.
 
 </div>
 <div class="col">
 
-<div class="stat">$1.5B+</div>
-<div class="stat-label">TVL</div>
+<span class="category">HEADLINE HERE</span>
+
+<div class="stat">10.3k</div>
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit.
 
 </div>
 </div>
 
 ---
 
+<!-- ===================================================
+     SLIDE 18: Stats Side (DARK)
+     =================================================== -->
 <!-- _class: stats-side -->
 
 <div class="content">
 
-# Network Growth
+# Presentation Title
 
-Sui has experienced rapid growth across all key metrics since mainnet launch, establishing itself as a leading Layer 1 blockchain.
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean rutrum lorem justo, at blandit metus pharetra ut...
 
 </div>
 
 <div class="stats">
 <div class="stat-row">
 
-<div class="stat">65B+</div>
-<div class="stat-label">Total Transactions</div>
+<div class="stat">350k</div>
+<div class="stat-label">Peak Transactions Per Second</div>
 
 </div>
 <div class="stat-row">
 
-<div class="stat">$1.5B+</div>
+<div class="stat">350k</div>
 <div class="stat-label">Total Value Locked</div>
 
 </div>
 <div class="stat-row">
 
-<div class="stat">55M+</div>
-<div class="stat-label">Active Accounts</div>
+<div class="stat">350k</div>
+<div class="stat-label">Active Addresses</div>
 
 </div>
 </div>
 
 ---
 
+<!-- ===================================================
+     SLIDE 19: Stats Left — large stacked (DARK)
+     =================================================== -->
 <!-- _class: stats-left -->
 
 <div class="grid">
-<div class="col no-border">
+<div class="col">
 
-<div class="stat-large">390ms</div>
-<div class="stat-label">Time to finality — the fastest in blockchain</div>
+<div class="stat-large">350k</div>
+<div class="stat-label">Peak transactions per second</div>
 
 </div>
-<div class="col no-border">
+<div class="col">
 
-<div class="stat-large">297K</div>
-<div class="stat-label">Peak transactions per second on mainnet</div>
+<div class="stat-large">350k</div>
+<div class="stat-label">Total value locked</div>
+
+</div>
+<div class="col">
+
+<div class="stat-large">350k</div>
+<div class="stat-label">Active addresses</div>
 
 </div>
 </div>
 
 ---
 
+<!-- ===================================================
+     SLIDE 20: Split Right (DARK)
+     =================================================== -->
 <!-- _class: split-right -->
 
-# Built for the Real World
+# Presentation Title
 
-Sui's architecture is designed from the ground up for mainstream adoption. Gasless transactions, zkLogin, and passkey support make Web3 feel like Web2.
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean rutrum lorem justo, at blandit metus pharetra ut...
 
 ---
 
+<!-- ===================================================
+     SLIDE 21: List Right — cards (DARK)
+     =================================================== -->
 <!-- _class: list-right -->
 
 <div class="content">
 
-# Developer Tools
-
-Everything you need to build on Sui.
+# Presentation Title
 
 </div>
 
 <div class="cards">
 <div class="card">
 
-#### Move Language
+#### Headline here
 
-Safe, expressive smart contract programming.
-
-</div>
-<div class="card">
-
-#### Sui CLI
-
-Full-featured command line tooling.
+Lorem ipsum dolor sit amet, consectetur adipiscing elit.
 
 </div>
 <div class="card">
 
-#### TypeScript SDK
+#### Headline here
 
-Client-side integration library.
+Lorem ipsum dolor sit amet, consectetur adipiscing elit.
 
 </div>
 <div class="card">
 
-#### GraphQL API
+#### Headline here
 
-Flexible data querying interface.
-
-</div>
-</div>
-
----
-
-<!-- _class: grid-products -->
-
-# Sui Ecosystem
-
-<div class="grid">
-<div class="col">
-
-<div class="icon">
-
-![](../assets/images/product-seal.svg)
-
-</div>
-
-### Seal
-
-</div>
-<div class="col">
-
-<div class="icon">
-
-![](../assets/images/product-deepbook.svg)
-
-</div>
-
-### DeepBook
-
-</div>
-<div class="col">
-
-<div class="icon">
-
-![](../assets/images/product-walrus.svg)
-
-</div>
-
-### Walrus
-
-</div>
-<div class="col">
-
-<div class="icon">
-
-![](../assets/images/product-suins.svg)
-
-</div>
-
-### SuiNS
-
-</div>
-<div class="col">
-
-<div class="icon">
-
-![](../assets/images/product-mysticeti.svg)
-
-</div>
-
-### Mysticeti
-
-</div>
-<div class="col">
-
-<div class="icon">
-
-![](../assets/images/product-nautilus.svg)
-
-</div>
-
-### Nautilus
-
-</div>
-<div class="col">
-
-<div class="icon">
-
-![](../assets/images/product-passkey.svg)
-
-</div>
-
-### Passkey
-
-</div>
-<div class="col">
-
-<div class="icon">
-
-![](../assets/images/product-zklogin.svg)
-
-</div>
-
-### zkLogin
+Lorem ipsum dolor sit amet, consectetur adipiscing elit.
 
 </div>
 </div>
 
 ---
 
-<!-- _class: product-sui -->
-
-![w:200](../assets/images/product-sui.svg)
-
-# Sui
-
-The Boundless Platform for builders and creators
-
----
-
-<!-- _class: product-sui-content -->
-
-<div class="content">
-
-# Sui Network
-
-Sui is a Layer 1 blockchain designed from the ground up for speed, low cost, and mass adoption. Its object-centric data model and Move programming language enable a new generation of applications.
-
-- Sub-second finality
-- Parallel transaction execution
-- Horizontal scalability
-- Object-centric storage
-
-</div>
-
-<div class="illustration">
-
-![](../assets/images/product-sui.svg)
-
-</div>
-
----
-
-<!-- _class: product-deepbook -->
-
-![w:200](../assets/images/product-deepbook.svg)
-
-# DeepBook
-
-The native liquidity layer for Sui
-
----
-
-<!-- _class: product-deepbook-content -->
-
-<div class="content">
-
-# DeepBook Protocol
-
-DeepBook is Sui's native decentralized central limit order book, providing deep liquidity and efficient price discovery for DeFi applications.
-
-- Central limit order book
-- On-chain matching engine
-- Composable with DeFi protocols
-- Low-latency execution
-
-</div>
-
-<div class="illustration">
-
-![](../assets/images/product-deepbook.svg)
-
-</div>
-
----
-
-<!-- _class: product-walrus -->
-
-![w:200](../assets/images/product-walrus.svg)
-
-# Walrus
-
-Decentralized storage for the next era of data
-
----
-
+<!-- ===================================================
+     SLIDE 22: Product Hero — Seal (DARK)
+     =================================================== -->
 <!-- _class: product-seal -->
 
-![w:200](../assets/images/product-seal.svg)
+![w:300](assets/images/seal-illustration-nobg.png)
+
+# Presentation Title
+
+---
+
+<!-- ===================================================
+     SLIDE 23: Product Content — Seal (DARK)
+     =================================================== -->
+<!-- _class: product-seal-content -->
+
+<div class="content">
 
 # Seal
 
-Threshold encryption for decentralized access control
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean rutrum lorem justo, at blandit metus pharetra ut...
+
+</div>
+
+<div class="illustration">
+
+![](assets/images/seal-illustration-nobg.png)
+
+</div>
 
 ---
 
-<!-- _class: product-move -->
+<!-- ===================================================
+     SLIDE 24: Full Bleed — Gradient cover
+     =================================================== -->
+<!-- _class: fullbleed -->
+<!-- _paginate: false -->
 
-![w:200](../assets/images/product-move.svg)
+![bg](assets/images/sui-cover.png)
 
-# Move
+---
 
-The language for safe, composable smart contracts
+<!-- ===================================================
+     SLIDE 25: Closing slide
+     =================================================== -->
+<!-- _class: cover-gradient -->
+<!-- _paginate: false -->
+
+![bg](assets/images/sui-cover.png)
+
+# Thank You
+
+Get in touch at sui.io
