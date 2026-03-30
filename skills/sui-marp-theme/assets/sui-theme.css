@@ -571,7 +571,8 @@ section.cover-gradient::after {
 
 /* =============================================================
    LAYOUT: cover-stripes — Title slide with striped blue bg
-   Uses the vertical stripe pattern background image
+   CSS gradient stripes approximate the PDF vertical band pattern.
+   Can be overridden with ![bg](image) in the markdown.
    ============================================================= */
 section.cover-stripes {
   display: flex;
@@ -579,6 +580,25 @@ section.cover-stripes {
   justify-content: flex-start;
   padding-top: 60px;
   color: #FFFFFF;
+  /* Vertical stripe bands approximating PDF pages 8-9.
+     5 bands with hard edges, each a different blue/dark tone. */
+  background:
+    /* Per-band vertical shading overlay */
+    linear-gradient(180deg,
+      rgba(0,0,0,0.15) 0%,
+      rgba(0,0,0,0.5) 45%,
+      rgba(0,0,0,0.1) 55%,
+      rgba(0,0,0,0.55) 85%,
+      rgba(0,0,0,0.2) 100%
+    ),
+    /* 5 vertical bands with hard stops */
+    linear-gradient(90deg,
+      #4A90E8 0%, #4A90E8 20%,
+      #0D2240 20%, #1A5AAA 40%,
+      #8CC4FF 40%, #C8E2FF 60%,
+      #3080DD 60%, #1560C0 80%,
+      #A0D0FF 80%, #4090E8 100%
+    );
 }
 
 section.cover-stripes h1 {
@@ -758,6 +778,12 @@ section.toc .toc-item .toc-label {
 }
 
 /* White theme TOC */
+/* White TOC right panel needs explicit white background */
+section.white.toc .toc-right,
+section.light.toc .toc-right {
+  background: #FFFFFF;
+}
+
 section.white.toc .toc-item .toc-num,
 section.light.toc .toc-item .toc-num {
   color: #6B6B6B;

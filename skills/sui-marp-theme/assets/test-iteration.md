@@ -125,6 +125,15 @@ Description text here.
 
 ---
 
+<!-- _class: cover-stripes -->
+<!-- _paginate: false -->
+
+# Stripes Cover
+
+CSS gradient stripes — no bg image needed
+
+---
+
 <!-- _class: quote -->
 <!-- _paginate: false -->
 
