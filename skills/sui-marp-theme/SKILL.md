@@ -103,7 +103,7 @@ Analyze the input slides and:
 ### Step 5: Generate the Styled Deck
 
 Create a `.md` file with:
-- Frontmatter: `marp: true`, `paginate: true`, `footer: "![w:16](assets/images/sui-logo.svg) Sui"`
+- Frontmatter: `marp: true`, `paginate: true`, `footer: "Sui"` (logo injected by CSS)
 - Full `<style>` block copied from `assets/template-sui.md`
 - Slides separated by `---`
 - Sui layout class directives: `<!-- _class: layout-name -->` (or `<!-- _class: white layout-name -->` for white theme)

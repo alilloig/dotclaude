@@ -184,5 +184,5 @@ After applying the Sui theme, verify:
 - [ ] Are cover/section-break/quote slides set to `<!-- _paginate: false -->`?
 - [ ] Is there sufficient black/white space?
 - [ ] Are images optimized for the theme (transparent bg, `-nobg` variants for dark)?
-- [ ] Is the Sui footer present (`footer: "![w:16](assets/images/sui-logo.svg) Sui"`)?
+- [ ] Is the Sui footer present (`footer: "Sui"`)? (logo is injected via CSS `footer::before`)
 - [ ] For white theme: is `white` class added to all slide directives?
