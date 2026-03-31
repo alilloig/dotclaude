@@ -82,7 +82,8 @@ Analyze the input slides and:
 | `lead` | `lead` | Same name. Add `white` prefix for light theme. |
 | *(opening cover)* | `cover-gradient` | Use with `![bg](assets/images/sui-cover.png)` for gradient covers |
 | *(opening cover alt)* | `cover-stripes` | Alternative cover with striped blue background |
-| *(section divider)* | `section-break` | Centered title, use with bg image |
+| *(section divider filler)* | `section-break` | Decorative filler with centered Sui logo — no title text |
+| *(chapter/topic intro)* | `chapter` | Title at top-left on gradient bg, introduces sections |
 | *(quote/statement)* | `quote` | Centered text on gradient bg. Add `white` for light variant. |
 | *(table of contents)* | `toc` | Split layout: gradient left, numbered list right |
 | *(basic content)* | `content` | Title + subtitle, top-left aligned |
@@ -189,17 +190,28 @@ Subtitle here
 
 Alternative cover using the vertical blue stripes pattern. Same structure as `cover-gradient`.
 
-### `section-break` — Section Divider
+### `section-break` — Decorative Filler/Transition
 
-Centered title on gradient background. Use to separate deck sections.
+Centered Sui logo on gradient background. Purely decorative — title text is hidden. Use as a visual breather between sections.
 
 ```markdown
 <!-- _class: section-break -->
 <!-- _paginate: false -->
 
 ![bg](assets/images/sui-cover.png)
+```
 
-# Section Title
+### `chapter` — Chapter/Topic Introduction
+
+Title at top-left on gradient background, clear of the centered Sui logo. Used to introduce new sections or topics.
+
+```markdown
+<!-- _class: chapter -->
+<!-- _paginate: false -->
+
+![bg](assets/images/sui-cover.png)
+
+# Chapter Title
 ```
 
 ### `quote` — Centered Quote
@@ -442,7 +454,8 @@ Use `-nobg` variants for illustrations on dark backgrounds. Use `.svg` variants 
 |----------------------|-----------------|
 | A title + tagline (opening) | `cover-gradient` with bg image |
 | A title + tagline (plain) | `lead` |
-| A section divider | `section-break` with bg image |
+| A decorative filler/transition | `section-break` with bg image |
+| A chapter/topic introduction | `chapter` with bg image |
 | A memorable quote or statement | `quote` with bg image |
 | A table of contents | `toc` |
 | Basic title + body | `content` |

@@ -673,13 +673,48 @@ section.section-break {
 }
 
 section.section-break h1 {
-  font-size: 48px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  display: none;
 }
 
 section.section-break footer,
 section.section-break::after {
+  display: none;
+}
+
+
+/* =============================================================
+   LAYOUT: chapter — Chapter/topic introduction on gradient bg
+   Title at top-left, clear of the centered Sui logo.
+   Usage: ![bg](assets/images/sui-cover.png)
+   ============================================================= */
+section.chapter {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding-top: 60px;
+  color: #FFFFFF;
+}
+
+section.chapter h1 {
+  font-size: 48px;
+  font-weight: 700;
+  color: #FFFFFF;
+  letter-spacing: -0.02em;
+  position: relative;
+  z-index: 1;
+}
+
+section.chapter p {
+  font-size: 22px;
+  color: rgba(255, 255, 255, 0.85);
+  max-width: 60%;
+  position: relative;
+  z-index: 1;
+}
+
+section.chapter footer,
+section.chapter::after {
   display: none;
 }
 

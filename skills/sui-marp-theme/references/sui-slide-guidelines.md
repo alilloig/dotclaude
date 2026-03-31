@@ -71,7 +71,8 @@ The template uses `sui-cover.png` (blue gradient) for several slide types:
 | Slide Type | Usage |
 |---|---|
 | `cover-gradient` | `![bg](assets/images/sui-cover.png)` — full bleed gradient cover |
-| `section-break` | `![bg](assets/images/sui-cover.png)` — section divider |
+| `section-break` | `![bg](assets/images/sui-cover.png)` — decorative filler (no title) |
+| `chapter` | `![bg](assets/images/sui-cover.png)` — chapter/topic introduction |
 | `quote` | `![bg](assets/images/sui-cover.png)` — quote on gradient |
 | `toc` | `style="background: url('assets/images/sui-cover.png') center/cover;"` on `.toc-left` |
 

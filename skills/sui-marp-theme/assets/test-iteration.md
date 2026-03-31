@@ -148,7 +148,14 @@ Lorem ipsum dolor sit amet, consectetur adipisc elit.
 
 ![bg](assets/images/sui-cover.png)
 
-# Section Break
+---
+
+<!-- _class: chapter -->
+<!-- _paginate: false -->
+
+![bg](assets/images/sui-cover.png)
+
+# Chapter Introduction
 
 ---
 
