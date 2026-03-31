@@ -47,5 +47,54 @@
     }
   },
   "effortLevel": "high",
-  "skipDangerousModePermissionPrompt": true
+  "skipDangerousModePermissionPrompt": true,
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node /Users/alilloig/.claude/plugins/coworking-monitor/hooks/notify.mjs session-start",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "matcher": ".+",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node /Users/alilloig/.claude/plugins/coworking-monitor/hooks/notify.mjs subagent-start",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": ".+",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node /Users/alilloig/.claude/plugins/coworking-monitor/hooks/notify.mjs subagent-stop",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node /Users/alilloig/.claude/plugins/coworking-monitor/hooks/notify.mjs session-end",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
 }

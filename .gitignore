@@ -26,3 +26,6 @@ plugins/marketplaces/
 plugins/install-counts-cache.json
 
 .remember/
+
+# ── OS junk ──
+.DS_Store

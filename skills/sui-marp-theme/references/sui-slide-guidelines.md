@@ -71,7 +71,8 @@ The template uses `sui-cover.png` (blue gradient) for several slide types:
 | Slide Type | Usage |
 |---|---|
 | `cover-gradient` | `![bg](assets/images/sui-cover.png)` — full bleed gradient cover |
-| `section-break` | `![bg](assets/images/sui-cover.png)` — section divider |
+| `section-break` | `![bg](assets/images/sui-cover.png)` — decorative filler (no title) |
+| `chapter` | `![bg](assets/images/sui-cover.png)` — chapter/topic introduction |
 | `quote` | `![bg](assets/images/sui-cover.png)` — quote on gradient |
 | `toc` | `style="background: url('assets/images/sui-cover.png') center/cover;"` on `.toc-left` |
 
@@ -184,5 +185,5 @@ After applying the Sui theme, verify:
 - [ ] Are cover/section-break/quote slides set to `<!-- _paginate: false -->`?
 - [ ] Is there sufficient black/white space?
 - [ ] Are images optimized for the theme (transparent bg, `-nobg` variants for dark)?
-- [ ] Is the Sui footer present (`footer: "![w:16](assets/images/sui-logo.svg) Sui"`)?
+- [ ] Is the Sui footer present (`footer: "Sui"`)? (logo is injected via CSS `footer::before`)
 - [ ] For white theme: is `white` class added to all slide directives?
