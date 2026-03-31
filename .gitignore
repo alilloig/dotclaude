@@ -27,5 +27,8 @@ plugins/install-counts-cache.json
 
 .remember/
 
+# ── Settings backups (auto-generated) ──
+settings.json.backup.*
+
 # ── OS junk ──
 .DS_Store
