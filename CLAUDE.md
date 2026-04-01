@@ -92,6 +92,7 @@ Runtime data stays on disk but is never committed. See `.gitignore` for the full
 - `history.jsonl` — command history (sensitive)
 - `cache/`, `debug/`, `telemetry/`, `statsig/` — runtime caches and analytics
 - `plugins/cache/`, `plugins/marketplaces/` — downloaded plugin code
+- `channels/` — bot tokens, access control (sensitive credentials)
 - `backups/`, `plans/`, `tasks/`, `todos/` — session-scoped working data
 
 ### The Rule

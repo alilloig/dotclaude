@@ -25,6 +25,9 @@ plugins/cache/
 plugins/marketplaces/
 plugins/install-counts-cache.json
 
+# ── Channels (bot tokens, access control — NEVER commit) ──
+channels/
+
 .remember/
 
 # ── Settings backups (auto-generated) ──

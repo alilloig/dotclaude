@@ -4,6 +4,13 @@
     "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "60",
     "CLAUDE_CODE_COORDINATOR_MODE": "1"
   },
+  "permissions": {
+    "allow": [
+      "Bash(claude team:*)",
+      "Bash(claude:*)"
+    ],
+    "defaultMode": "default"
+  },
   "hooks": {
     "SessionStart": [
       {

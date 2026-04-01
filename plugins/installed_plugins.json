@@ -4,40 +4,40 @@
     "frontend-design@claude-plugins-official": [
       {
         "scope": "user",
-        "installPath": "/Users/alilloig/.claude/plugins/cache/claude-plugins-official/frontend-design/05202a5ec67a",
-        "version": "05202a5ec67a",
+        "installPath": "/Users/alilloig/.claude/plugins/cache/claude-plugins-official/frontend-design/7b5bb83a5562",
+        "version": "7b5bb83a5562",
         "installedAt": "2026-04-01T11:41:51.118Z",
-        "lastUpdated": "2026-04-01T11:41:51.118Z",
+        "lastUpdated": "2026-04-01T13:08:23.116Z",
         "gitCommitSha": "05202a5ec67ab522d9c7667d7eae5628809a72a3"
       }
     ],
     "code-review@claude-plugins-official": [
       {
         "scope": "user",
-        "installPath": "/Users/alilloig/.claude/plugins/cache/claude-plugins-official/code-review/05202a5ec67a",
-        "version": "05202a5ec67a",
+        "installPath": "/Users/alilloig/.claude/plugins/cache/claude-plugins-official/code-review/7b5bb83a5562",
+        "version": "7b5bb83a5562",
         "installedAt": "2026-04-01T11:41:50.377Z",
-        "lastUpdated": "2026-04-01T11:41:50.377Z",
+        "lastUpdated": "2026-04-01T13:08:23.113Z",
         "gitCommitSha": "05202a5ec67ab522d9c7667d7eae5628809a72a3"
       }
     ],
     "github@claude-plugins-official": [
       {
         "scope": "user",
-        "installPath": "/Users/alilloig/.claude/plugins/cache/claude-plugins-official/github/05202a5ec67a",
-        "version": "05202a5ec67a",
+        "installPath": "/Users/alilloig/.claude/plugins/cache/claude-plugins-official/github/7b5bb83a5562",
+        "version": "7b5bb83a5562",
         "installedAt": "2026-04-01T11:41:51.292Z",
-        "lastUpdated": "2026-04-01T11:41:51.292Z",
+        "lastUpdated": "2026-04-01T13:08:23.117Z",
         "gitCommitSha": "05202a5ec67ab522d9c7667d7eae5628809a72a3"
       }
     ],
     "feature-dev@claude-plugins-official": [
       {
         "scope": "user",
-        "installPath": "/Users/alilloig/.claude/plugins/cache/claude-plugins-official/feature-dev/05202a5ec67a",
-        "version": "05202a5ec67a",
+        "installPath": "/Users/alilloig/.claude/plugins/cache/claude-plugins-official/feature-dev/7b5bb83a5562",
+        "version": "7b5bb83a5562",
         "installedAt": "2026-04-01T11:41:50.929Z",
-        "lastUpdated": "2026-04-01T11:41:50.929Z",
+        "lastUpdated": "2026-04-01T13:08:23.112Z",
         "gitCommitSha": "05202a5ec67ab522d9c7667d7eae5628809a72a3"
       }
     ],
@@ -74,40 +74,40 @@
     "playwright@claude-plugins-official": [
       {
         "scope": "user",
-        "installPath": "/Users/alilloig/.claude/plugins/cache/claude-plugins-official/playwright/05202a5ec67a",
-        "version": "05202a5ec67a",
+        "installPath": "/Users/alilloig/.claude/plugins/cache/claude-plugins-official/playwright/7b5bb83a5562",
+        "version": "7b5bb83a5562",
         "installedAt": "2026-04-01T11:42:01.003Z",
-        "lastUpdated": "2026-04-01T11:42:01.003Z",
+        "lastUpdated": "2026-04-01T13:08:23.114Z",
         "gitCommitSha": "05202a5ec67ab522d9c7667d7eae5628809a72a3"
       }
     ],
     "commit-commands@claude-plugins-official": [
       {
         "scope": "user",
-        "installPath": "/Users/alilloig/.claude/plugins/cache/claude-plugins-official/commit-commands/05202a5ec67a",
-        "version": "05202a5ec67a",
+        "installPath": "/Users/alilloig/.claude/plugins/cache/claude-plugins-official/commit-commands/7b5bb83a5562",
+        "version": "7b5bb83a5562",
         "installedAt": "2026-04-01T11:41:50.749Z",
-        "lastUpdated": "2026-04-01T11:41:50.749Z",
+        "lastUpdated": "2026-04-01T13:08:23.113Z",
         "gitCommitSha": "05202a5ec67ab522d9c7667d7eae5628809a72a3"
       }
     ],
     "pr-review-toolkit@claude-plugins-official": [
       {
         "scope": "user",
-        "installPath": "/Users/alilloig/.claude/plugins/cache/claude-plugins-official/pr-review-toolkit/05202a5ec67a",
-        "version": "05202a5ec67a",
+        "installPath": "/Users/alilloig/.claude/plugins/cache/claude-plugins-official/pr-review-toolkit/7b5bb83a5562",
+        "version": "7b5bb83a5562",
         "installedAt": "2026-04-01T11:42:01.388Z",
-        "lastUpdated": "2026-04-01T11:42:01.388Z",
+        "lastUpdated": "2026-04-01T13:08:23.115Z",
         "gitCommitSha": "05202a5ec67ab522d9c7667d7eae5628809a72a3"
       }
     ],
     "linear@claude-plugins-official": [
       {
         "scope": "user",
-        "installPath": "/Users/alilloig/.claude/plugins/cache/claude-plugins-official/linear/05202a5ec67a",
-        "version": "05202a5ec67a",
+        "installPath": "/Users/alilloig/.claude/plugins/cache/claude-plugins-official/linear/7b5bb83a5562",
+        "version": "7b5bb83a5562",
         "installedAt": "2026-04-01T11:41:59.403Z",
-        "lastUpdated": "2026-04-01T11:41:59.403Z",
+        "lastUpdated": "2026-04-01T13:08:23.117Z",
         "gitCommitSha": "05202a5ec67ab522d9c7667d7eae5628809a72a3"
       }
     ],
@@ -164,20 +164,20 @@
     "playground@claude-plugins-official": [
       {
         "scope": "user",
-        "installPath": "/Users/alilloig/.claude/plugins/cache/claude-plugins-official/playground/05202a5ec67a",
-        "version": "05202a5ec67a",
+        "installPath": "/Users/alilloig/.claude/plugins/cache/claude-plugins-official/playground/7b5bb83a5562",
+        "version": "7b5bb83a5562",
         "installedAt": "2026-04-01T11:42:00.819Z",
-        "lastUpdated": "2026-04-01T11:42:00.819Z",
+        "lastUpdated": "2026-04-01T13:08:23.116Z",
         "gitCommitSha": "05202a5ec67ab522d9c7667d7eae5628809a72a3"
       }
     ],
     "security-guidance@claude-plugins-official": [
       {
         "scope": "user",
-        "installPath": "/Users/alilloig/.claude/plugins/cache/claude-plugins-official/security-guidance/05202a5ec67a",
-        "version": "05202a5ec67a",
+        "installPath": "/Users/alilloig/.claude/plugins/cache/claude-plugins-official/security-guidance/7b5bb83a5562",
+        "version": "7b5bb83a5562",
         "installedAt": "2026-04-01T11:42:04.438Z",
-        "lastUpdated": "2026-04-01T11:42:04.438Z",
+        "lastUpdated": "2026-04-01T13:08:23.115Z",
         "gitCommitSha": "05202a5ec67ab522d9c7667d7eae5628809a72a3"
       }
     ],
@@ -204,20 +204,20 @@
     "vercel@claude-plugins-official": [
       {
         "scope": "user",
-        "installPath": "/Users/alilloig/.claude/plugins/cache/claude-plugins-official/vercel/7807a6aabad5",
-        "version": "7807a6aabad5",
+        "installPath": "/Users/alilloig/.claude/plugins/cache/claude-plugins-official/vercel/44417d3786d4",
+        "version": "44417d3786d4",
         "installedAt": "2026-04-01T11:42:10.081Z",
-        "lastUpdated": "2026-04-01T11:42:10.081Z",
+        "lastUpdated": "2026-04-01T21:33:10.698Z",
         "gitCommitSha": "7807a6aabad5bbb118d989252cade51313efb0e4"
       }
     ],
     "plugin-dev@claude-plugins-official": [
       {
         "scope": "user",
-        "installPath": "/Users/alilloig/.claude/plugins/cache/claude-plugins-official/plugin-dev/05202a5ec67a",
-        "version": "05202a5ec67a",
+        "installPath": "/Users/alilloig/.claude/plugins/cache/claude-plugins-official/plugin-dev/7b5bb83a5562",
+        "version": "7b5bb83a5562",
         "installedAt": "2026-04-01T11:42:01.200Z",
-        "lastUpdated": "2026-04-01T11:42:01.200Z",
+        "lastUpdated": "2026-04-01T13:08:23.114Z",
         "gitCommitSha": "05202a5ec67ab522d9c7667d7eae5628809a72a3"
       }
     ],
@@ -234,10 +234,10 @@
     "skill-creator@claude-plugins-official": [
       {
         "scope": "user",
-        "installPath": "/Users/alilloig/.claude/plugins/cache/claude-plugins-official/skill-creator/05202a5ec67a",
-        "version": "05202a5ec67a",
+        "installPath": "/Users/alilloig/.claude/plugins/cache/claude-plugins-official/skill-creator/7b5bb83a5562",
+        "version": "7b5bb83a5562",
         "installedAt": "2026-04-01T11:42:04.626Z",
-        "lastUpdated": "2026-04-01T11:42:04.626Z",
+        "lastUpdated": "2026-04-01T13:08:23.115Z",
         "gitCommitSha": "05202a5ec67ab522d9c7667d7eae5628809a72a3"
       }
     ],
@@ -264,10 +264,10 @@
     "hookify@claude-plugins-official": [
       {
         "scope": "user",
-        "installPath": "/Users/alilloig/.claude/plugins/cache/claude-plugins-official/hookify/05202a5ec67a",
-        "version": "05202a5ec67a",
+        "installPath": "/Users/alilloig/.claude/plugins/cache/claude-plugins-official/hookify/7b5bb83a5562",
+        "version": "7b5bb83a5562",
         "installedAt": "2026-04-01T11:41:51.666Z",
-        "lastUpdated": "2026-04-01T11:41:51.666Z",
+        "lastUpdated": "2026-04-01T13:08:23.116Z",
         "gitCommitSha": "05202a5ec67ab522d9c7667d7eae5628809a72a3"
       }
     ],
@@ -294,10 +294,10 @@
     "mcp-server-dev@claude-plugins-official": [
       {
         "scope": "user",
-        "installPath": "/Users/alilloig/.claude/plugins/cache/claude-plugins-official/mcp-server-dev/05202a5ec67a",
-        "version": "05202a5ec67a",
+        "installPath": "/Users/alilloig/.claude/plugins/cache/claude-plugins-official/mcp-server-dev/7b5bb83a5562",
+        "version": "7b5bb83a5562",
         "installedAt": "2026-04-01T11:41:59.590Z",
-        "lastUpdated": "2026-04-01T11:41:59.590Z",
+        "lastUpdated": "2026-04-01T13:08:23.114Z",
         "gitCommitSha": "05202a5ec67ab522d9c7667d7eae5628809a72a3"
       }
     ],
