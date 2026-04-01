@@ -1,0 +1,28 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "local",
+  "description": "Local plugins developed in this claudefiles repo",
+  "owner": {
+    "name": "alilloig"
+  },
+  "plugins": [
+    {
+      "name": "project-bootstrap",
+      "description": "Multi-agent bootstrap system (Project Forge)",
+      "source": "./project-bootstrap",
+      "category": "development"
+    },
+    {
+      "name": "codex-bridge",
+      "description": "Bridge to OpenAI Codex CLI with multi-turn session support",
+      "source": "./codex-bridge",
+      "category": "development"
+    },
+    {
+      "name": "sui-wallet",
+      "description": "Mock Sui wallet for browser-based dApp testing",
+      "source": "./sui-wallet",
+      "category": "development"
+    }
+  ]
+}

@@ -59,8 +59,10 @@ When in plan mode, actively use the AskUserQuestion tool to clarify requirements
 
 ```bash
 git clone --recurse-submodules git@github.com:alilloig/claudefiles.git ~/workspace/claudefiles
-ln -s ~/workspace/claudefiles ~/.claude
+cd ~/workspace/claudefiles && bash setup.sh
 ```
+
+`setup.sh` handles: symlink creation, submodule init, marketplace registration (official, impeccable, local), plugin installation, and enable/disable state. Safe to re-run.
 
 ### What's Tracked (Committed)
 
@@ -73,7 +75,9 @@ ln -s ~/workspace/claudefiles ~/.claude
 | User settings (hooks, plugins, env) | `settings.json` |
 | Hook scripts | `hooks/` |
 | Agent teams | `teams/` |
-| Local plugins | `plugins/codex-bridge/`, `plugins/sui-wallet/` |
+| Local plugins | `plugins/codex-bridge/`, `plugins/sui-wallet/`, `plugins/project-bootstrap/` |
+| Local marketplace | `plugins/local/` (symlinks to local plugins) |
+| Setup script | `setup.sh` |
 | Plugin state | `plugins/installed_plugins.json`, `plugins/known_marketplaces.json`, `plugins/blocklist.json` |
 | Agent catalog & recipes | `_meta/AGENTS.md` |
 | Sui/Walrus/Seal documentation | `sui-pilot/` (submodule) |

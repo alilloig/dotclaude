@@ -4,51 +4,6 @@
     "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "60",
     "CLAUDE_CODE_COORDINATOR_MODE": "1"
   },
-  "enabledPlugins": {
-    "claude-code-setup@claude-plugins-official": true,
-    "claude-md-management@claude-plugins-official": true,
-    "code-review@claude-plugins-official": true,
-    "code-simplifier@claude-plugins-official": true,
-    "commit-commands@claude-plugins-official": true,
-    "feature-dev@claude-plugins-official": true,
-    "frontend-design@claude-plugins-official": true,
-    "github@claude-plugins-official": false,
-    "learning-output-style@claude-plugins-official": true,
-    "linear@claude-plugins-official": false,
-    "playground@claude-plugins-official": true,
-    "playwright@claude-plugins-official": false,
-    "plugin-dev@claude-plugins-official": true,
-    "pr-review-toolkit@claude-plugins-official": true,
-    "pyright-lsp@claude-plugins-official": true,
-    "ralph-loop@claude-plugins-official": true,
-    "rust-analyzer-lsp@claude-plugins-official": true,
-    "security-guidance@claude-plugins-official": true,
-    "slack@claude-plugins-official": false,
-    "superpowers@claude-plugins-official": true,
-    "swift-lsp@claude-plugins-official": true,
-    "typescript-lsp@claude-plugins-official": true,
-    "vercel@claude-plugins-official": false,
-    "skill-creator@claude-plugins-official": true,
-    "telegram@claude-plugins-official": true,
-    "remember@claude-plugins-official": true,
-    "hookify@claude-plugins-official": true,
-    "gopls-lsp@claude-plugins-official": true,
-    "legalzoom@claude-plugins-official": true,
-    "mcp-server-dev@claude-plugins-official": true,
-    "notion@claude-plugins-official": false,
-    "chrome-devtools-mcp@claude-plugins-official": true,
-    "impeccable@impeccable": true
-  },
-  "extraKnownMarketplaces": {
-    "impeccable": {
-      "source": {
-        "source": "github",
-        "repo": "pbakaus/impeccable"
-      }
-    }
-  },
-  "effortLevel": "high",
-  "skipDangerousModePermissionPrompt": true,
   "hooks": {
     "SessionStart": [
       {
@@ -97,5 +52,59 @@
         ]
       }
     ]
-  }
+  },
+  "enabledPlugins": {
+    "claude-code-setup@claude-plugins-official": true,
+    "claude-md-management@claude-plugins-official": true,
+    "code-review@claude-plugins-official": true,
+    "code-simplifier@claude-plugins-official": true,
+    "commit-commands@claude-plugins-official": true,
+    "feature-dev@claude-plugins-official": true,
+    "frontend-design@claude-plugins-official": true,
+    "github@claude-plugins-official": false,
+    "learning-output-style@claude-plugins-official": true,
+    "linear@claude-plugins-official": false,
+    "playground@claude-plugins-official": true,
+    "playwright@claude-plugins-official": false,
+    "plugin-dev@claude-plugins-official": true,
+    "pr-review-toolkit@claude-plugins-official": true,
+    "pyright-lsp@claude-plugins-official": true,
+    "ralph-loop@claude-plugins-official": true,
+    "rust-analyzer-lsp@claude-plugins-official": true,
+    "security-guidance@claude-plugins-official": true,
+    "slack@claude-plugins-official": false,
+    "superpowers@claude-plugins-official": true,
+    "swift-lsp@claude-plugins-official": true,
+    "typescript-lsp@claude-plugins-official": true,
+    "vercel@claude-plugins-official": false,
+    "skill-creator@claude-plugins-official": true,
+    "telegram@claude-plugins-official": true,
+    "remember@claude-plugins-official": true,
+    "hookify@claude-plugins-official": true,
+    "gopls-lsp@claude-plugins-official": true,
+    "legalzoom@claude-plugins-official": true,
+    "mcp-server-dev@claude-plugins-official": true,
+    "notion@claude-plugins-official": false,
+    "chrome-devtools-mcp@claude-plugins-official": true,
+    "impeccable@impeccable": true,
+    "project-bootstrap@local": true,
+    "codex-bridge@local": true,
+    "sui-wallet@local": true
+  },
+  "extraKnownMarketplaces": {
+    "impeccable": {
+      "source": {
+        "source": "github",
+        "repo": "pbakaus/impeccable"
+      }
+    },
+    "local": {
+      "source": {
+        "source": "directory",
+        "path": "/Users/alilloig/workspace/claudefiles/plugins/local"
+      }
+    }
+  },
+  "effortLevel": "high",
+  "skipDangerousModePermissionPrompt": true
 }
