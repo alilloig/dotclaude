@@ -1,0 +1,17 @@
+{
+  "name": "project-bootstrap",
+  "version": "1.0.0",
+  "description": "Multi-agent bootstrap system (Project Forge) — turns a lazy prompt into a polished project via Claude-Codex cross-checked planning, implementation cycles, and evaluation loops.",
+  "author": {
+    "name": "alilloig"
+  },
+  "keywords": ["bootstrap", "forge", "multi-agent", "codex", "orchestration", "planning"],
+  "commands": ["./commands/bootstrap.md"],
+  "skills": "./skills/",
+  "agents": [
+    "./agents/planner.md",
+    "./agents/implementer.md",
+    "./agents/evaluator.md",
+    "./agents/codebase-explorer.md"
+  ]
+}
