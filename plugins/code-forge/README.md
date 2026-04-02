@@ -140,11 +140,18 @@ If a session crashes mid-forge, just run `/forge` again in the same directory. T
 
 To start fresh: delete the `.forge/` directory and re-run.
 
-## Prerequisites
+## Plugin Dependencies
 
-- **Codex Bridge** plugin installed at `~/.claude/plugins/codex-bridge/`
-- **Codex CLI** authenticated (run `codex auth` if needed)
-- Without Codex Bridge, the system degrades to Claude-only mode (no cross-checking)
+| Plugin | Status | Purpose |
+|--------|--------|---------|
+| `codex-bridge@local` | **Required** | Provides `mcp__codex__codex` and `mcp__codex__codex-reply` MCP tools for all Codex gates (G1a–G6). Without it, forge degrades to Claude-only mode (no cross-checking). |
+| `superpowers@claude-plugins-official` | **Strongly Recommended** | Behavioral meta-skills (`verification-before-completion`, `executing-plans`, `subagent-driven-development`, `dispatching-parallel-agents`) reinforce the forge protocol's rigor. Without superpowers enabled, the orchestrator may skip phases or Codex gates. |
+
+### Setup
+
+- **Codex Bridge**: Install at `~/.claude/plugins/codex-bridge/` and authenticate (`codex auth`)
+- **Superpowers**: Enable in settings — `"superpowers@claude-plugins-official": true`
+- Both plugins must be enabled in `settings.json` under `enabledPlugins`
 
 ## Troubleshooting
 

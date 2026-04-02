@@ -89,7 +89,7 @@
     "remember@claude-plugins-official": true,
     "hookify@claude-plugins-official": true,
     "gopls-lsp@claude-plugins-official": true,
-    "legalzoom@claude-plugins-official": true,
+    "legalzoom@claude-plugins-official": false,
     "mcp-server-dev@claude-plugins-official": true,
     "notion@claude-plugins-official": false,
     "chrome-devtools-mcp@claude-plugins-official": true,
