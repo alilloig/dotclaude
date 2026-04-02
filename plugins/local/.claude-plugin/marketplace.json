@@ -7,9 +7,9 @@
   },
   "plugins": [
     {
-      "name": "project-bootstrap",
-      "description": "Multi-agent bootstrap system (Project Forge)",
-      "source": "./project-bootstrap",
+      "name": "code-forge",
+      "description": "Multi-agent build system (Code Forge)",
+      "source": "./code-forge",
       "category": "development"
     },
     {

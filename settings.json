@@ -94,7 +94,7 @@
     "notion@claude-plugins-official": false,
     "chrome-devtools-mcp@claude-plugins-official": true,
     "impeccable@impeccable": true,
-    "project-bootstrap@local": true,
+    "code-forge@local": true,
     "codex-bridge@local": true,
     "sui-wallet@local": true
   },

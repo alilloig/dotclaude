@@ -1,29 +1,29 @@
-# Project Forge — Multi-Agent Bootstrap System
+# Code Forge — Multi-Agent Build System
 
 Turn a lazy, one-line prompt into a polished project through automated planning, implementation, and evaluation cycles with Claude-Codex cross-checking at every gate.
 
 ## Quick Start
 
 ```
-/bootstrap "Build a real-time task management app with WebSocket collaboration"
+/forge "Build a real-time task management app with WebSocket collaboration"
 ```
 
 The system will ask you 3-5 questions to sharpen your intent, then run autonomously — planning, implementing, evaluating, and reviewing in cycles until done.
 
 ## Design Philosophy
 
-Project Forge is built on principles from [Anthropic's harness design for long-running agents](https://www.anthropic.com/engineering/harness-design-long-running-apps):
+Code Forge is built on principles from [Anthropic's harness design for long-running agents](https://www.anthropic.com/engineering/harness-design-long-running-apps):
 
 - **Generator-Evaluator Separation** — The implementer writes code, a separate skeptical evaluator checks it against a pre-agreed contract. Self-evaluation doesn't work; independent evaluation does.
 - **Codex as Adversarial Reviewer** — At 8 key gates, OpenAI's Codex independently critiques Claude's work. Two different AI systems are much harder to fool than one reviewing itself.
 - **Contracts Before Code** — Every cycle starts with a negotiated completion contract defining objective, measurable "done" criteria. This prevents goalpost-moving and vague quality bars.
 - **Iterative Prompt Refinement** — Even the planning prompt is treated as an artifact worth improving. Claude and Codex take turns critiquing and refining it before planning begins.
-- **File-Based State** — All artifacts live in `.bootstrap/`. Sessions can crash, context can compact, and the system resumes from where it left off.
+- **File-Based State** — All artifacts live in `.forge/`. Sessions can crash, context can compact, and the system resumes from where it left off.
 
 ## How It Works
 
 ```
-/bootstrap "lazy prompt"
+/forge "lazy prompt"
   |
   |-- Phase 0:   Intent Sharpening (AskUserQuestion x 3-5)
   |-- Phase 0.5: Codebase Exploration (existing repos only, 2-3 parallel agents)
@@ -46,22 +46,22 @@ Project Forge is built on principles from [Anthropic's harness design for long-r
 
 ### Greenfield project
 ```
-/bootstrap "Build a CLI tool in Rust that converts Markdown to beautiful PDF with syntax highlighting"
+/forge "Build a CLI tool in Rust that converts Markdown to beautiful PDF with syntax highlighting"
 ```
 
 ### Major feature in existing codebase
 ```
-/bootstrap "Add real-time collaborative editing to the existing document editor using CRDTs"
+/forge "Add real-time collaborative editing to the existing document editor using CRDTs"
 ```
 
 ### With domain-specific agents
 ```
-/bootstrap "Build a Sui Move NFT marketplace with Next.js frontend" --agents move-agent,frontend-agent
+/forge "Build a Sui Move NFT marketplace with Next.js frontend" --agents move-agent,frontend-agent
 ```
 
 ### Cost-conscious mode
 ```
-/bootstrap "Simple REST API for a todo app" --light
+/forge "Simple REST API for a todo app" --light
 ```
 
 ## Flags
@@ -73,7 +73,7 @@ Project Forge is built on principles from [Anthropic's harness design for long-r
 
 ## Artifacts
 
-All artifacts are written to `.bootstrap/` in the project root:
+All artifacts are written to `.forge/` in the project root:
 
 | File | Phase | Content |
 |------|-------|---------|
@@ -136,9 +136,9 @@ Use `--light` to reduce Codex calls by ~30%.
 
 ## Resume
 
-If a session crashes mid-bootstrap, just run `/bootstrap` again in the same directory. The system reads `.bootstrap/status.md` and resumes from the last completed phase/cycle.
+If a session crashes mid-forge, just run `/forge` again in the same directory. The system reads `.forge/status.md` and resumes from the last completed phase/cycle.
 
-To start fresh: delete the `.bootstrap/` directory and re-run.
+To start fresh: delete the `.forge/` directory and re-run.
 
 ## Prerequisites
 
@@ -153,6 +153,6 @@ To start fresh: delete the `.bootstrap/` directory and re-run.
 | `mcp__codex__codex` tool not found | Ensure Codex Bridge plugin is in `~/.claude/plugins/codex-bridge/` |
 | Codex auth error | Run `! codex auth` in Claude Code prompt |
 | Evaluator loops 5 times | System auto-escalates to user with options |
-| Session crashed mid-cycle | Re-run `/bootstrap` — resumes from `status.md` |
-| Want to restart from scratch | Delete `.bootstrap/` directory, then `/bootstrap` again |
+| Session crashed mid-cycle | Re-run `/forge` — resumes from `status.md` |
+| Want to restart from scratch | Delete `.forge/` directory, then `/forge` again |
 | Agents use wrong domain | Use `--agents role1,role2` to override auto-detection |

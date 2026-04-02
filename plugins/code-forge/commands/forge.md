@@ -1,13 +1,13 @@
 ---
-description: "Bootstrap a new project or major feature via multi-agent planning, implementation, and evaluation cycles with Codex cross-checking"
+description: "Forge a new project or major feature via multi-agent planning, implementation, and evaluation cycles with Codex cross-checking"
 argument-hint: "DESCRIPTION [--agents ROLES] [--light]"
 ---
 
-# Project Forge — Bootstrap
+# Code Forge
 
 Initial request: $ARGUMENTS
 
-**Invoke the project-bootstrap skill to begin the orchestration protocol.**
+**Invoke the code-forge skill to begin the orchestration protocol.**
 
 Parse flags from the arguments:
 - `--agents ROLES` — Comma-separated agent role names from AGENTS.md (e.g., `--agents move-agent,frontend-agent`). Overrides auto-detection.

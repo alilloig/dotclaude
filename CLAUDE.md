@@ -75,7 +75,7 @@ cd ~/workspace/claudefiles && bash setup.sh
 | User settings (hooks, plugins, env) | `settings.json` |
 | Hook scripts | `hooks/` |
 | Agent teams | `teams/` |
-| Local plugins | `plugins/codex-bridge/`, `plugins/sui-wallet/`, `plugins/project-bootstrap/` |
+| Local plugins | `plugins/codex-bridge/`, `plugins/sui-wallet/`, `plugins/code-forge/` |
 | Local marketplace | `plugins/local/` (symlinks to local plugins) |
 | Setup script | `setup.sh` |
 | Plugin state | `plugins/installed_plugins.json`, `plugins/known_marketplaces.json`, `plugins/blocklist.json` |

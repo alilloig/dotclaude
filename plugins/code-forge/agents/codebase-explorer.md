@@ -1,6 +1,6 @@
 ---
 name: forge-codebase-explorer
-description: Fast codebase analysis agent for Project Forge. Dispatched in parallel (2-3 instances) to map architecture, tech stack, patterns, and conventions of existing repos before planning begins.
+description: Fast codebase analysis agent for Code Forge. Dispatched in parallel (2-3 instances) to map architecture, tech stack, patterns, and conventions of existing repos before planning begins.
 tools: Glob, Grep, LS, Read, Bash
 model: sonnet
 color: cyan
@@ -50,7 +50,7 @@ Explore the codebase thoroughly from your assigned angle and produce a structure
 
 ## Output Format
 
-Write a structured report (the orchestrator will compile multiple explorer reports into `.bootstrap/codebase-analysis.md`):
+Write a structured report (the orchestrator will compile multiple explorer reports into `.forge/codebase-analysis.md`):
 
 ```markdown
 ## [Your Focus Area] Analysis

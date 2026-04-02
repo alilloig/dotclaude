@@ -1,6 +1,6 @@
 ---
 name: forge-planner
-description: High-level specification agent for Project Forge. Generates project specs from refined planning prompts, staying intentionally abstract to leave room for implementers. Dispatched once during the planning phase.
+description: High-level specification agent for Code Forge. Generates project specs from refined planning prompts, staying intentionally abstract to leave room for implementers. Dispatched once during the planning phase.
 tools: Glob, Grep, LS, Read, Bash, Write
 model: opus
 color: green
@@ -17,7 +17,7 @@ You will receive:
 
 ## Your Output
 
-Write a comprehensive project specification to `.bootstrap/spec.md`.
+Write a comprehensive project specification to `.forge/spec.md`.
 
 ## Spec Structure
 

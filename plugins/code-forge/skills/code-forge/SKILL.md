@@ -1,10 +1,10 @@
 ---
-name: project-bootstrap
+name: code-forge
 description: |
-  Multi-agent bootstrap system (Project Forge) that turns a lazy prompt into a
+  Multi-agent build system (Code Forge) that turns a lazy prompt into a
   polished project or major feature. Orchestrates planning, implementation, and
   evaluation cycles with Claude-Codex cross-checking at every gate. Use when:
-  (1) the user invokes /bootstrap,
+  (1) the user invokes /forge,
   (2) the user wants to start a new project from a brief description,
   (3) the user wants to build a major new feature with structured planning and review.
 allowed-tools:
@@ -24,9 +24,9 @@ author: alilloig
 version: 1.0.0
 ---
 
-# Project Forge — Multi-Agent Bootstrap Orchestration Protocol
+# Code Forge — Multi-Agent Orchestration Protocol
 
-You are the orchestrator of Project Forge, a multi-agent bootstrap system. Follow this protocol exactly, phase by phase. You dispatch subagents, consult Codex, and manage all artifacts. Do not skip phases or quality gates.
+You are the orchestrator of Code Forge, a multi-agent build system. Follow this protocol exactly, phase by phase. You dispatch subagents, consult Codex, and manage all artifacts. Do not skip phases or quality gates.
 
 **Lazy prompt**: $ARGUMENTS
 
@@ -36,9 +36,9 @@ You are the orchestrator of Project Forge, a multi-agent bootstrap system. Follo
 
 ### Check for Resume
 
-1. Check if `.bootstrap/status.md` exists in the current directory
+1. Check if `.forge/status.md` exists in the current directory
 2. If it exists, read it and jump to the phase/cycle indicated by the status
-3. If not, this is a fresh bootstrap — continue below
+3. If not, this is a fresh run — continue below
 
 ### Parse Flags
 
@@ -50,18 +50,18 @@ Extract from the arguments:
 ### Create Artifact Directory
 
 ```
-mkdir -p .bootstrap/cycles
+mkdir -p .forge/cycles
 ```
 
 ### Check Prerequisites
 
 Verify Codex Bridge is available by checking that `mcp__codex__codex` tool exists. If not available:
-- Warn the user: "Codex Bridge not detected. Bootstrap will run in Claude-only mode (no cross-checking)."
+- Warn the user: "Codex Bridge not detected. Code Forge will run in Claude-only mode (no cross-checking)."
 - Set `CODEX_AVAILABLE=false` and proceed without Codex gates
 
 ### Initialize Status
 
-Write `.bootstrap/status.md`:
+Write `.forge/status.md`:
 ```yaml
 ---
 phase: "intent"
@@ -101,7 +101,7 @@ Use AskUserQuestion to ask 3-5 targeted questions. Adapt questions based on whet
 
 ### Compile Intent
 
-After receiving answers, write `.bootstrap/intent.md`:
+After receiving answers, write `.forge/intent.md`:
 
 ```markdown
 ---
@@ -137,7 +137,7 @@ Update `status.md` phase to `"exploration"`.
 
 2. Read the key files identified by each explorer (top 5-10 from each)
 
-3. Compile their reports into `.bootstrap/codebase-analysis.md`:
+3. Compile their reports into `.forge/codebase-analysis.md`:
 ```markdown
 ---
 type: codebase-analysis
@@ -171,8 +171,8 @@ Update `status.md` phase to `"prompt-refinement"`.
 ### Round 1 — Claude's v1
 
 Write the best possible planning prompt based on:
-- The enriched intent (`.bootstrap/intent.md`)
-- The codebase analysis (`.bootstrap/codebase-analysis.md`, if exists)
+- The enriched intent (`.forge/intent.md`)
+- The codebase analysis (`.forge/codebase-analysis.md`, if exists)
 - Your knowledge of what makes a good project specification
 
 The planning prompt should instruct a planner agent to generate a comprehensive spec. It should encode the user's goals, constraints, quality bar, and scope — everything the planner needs to produce a strong spec without further user input.
@@ -232,7 +232,7 @@ Only if Codex's response does NOT contain "CONVERGED" and the delta is significa
 
 ### Log Evolution
 
-Write `.bootstrap/prompt-evolution.md` with all versions and critiques:
+Write `.forge/prompt-evolution.md` with all versions and critiques:
 ```markdown
 ## v1 (Claude)
 [full text]
@@ -253,7 +253,7 @@ Write `.bootstrap/prompt-evolution.md` with all versions and critiques:
 [full text]
 ```
 
-Write the final prompt to `.bootstrap/planning-prompt.md`.
+Write the final prompt to `.forge/planning-prompt.md`.
 
 Update `status.md` phase to `"specification"`.
 
@@ -265,8 +265,8 @@ Update `status.md` phase to `"specification"`.
 
 ### Detection Sources
 
-1. **Intent** (`.bootstrap/intent.md`): tech stack preferences, framework mentions
-2. **Codebase analysis** (`.bootstrap/codebase-analysis.md`): detected languages, frameworks
+1. **Intent** (`.forge/intent.md`): tech stack preferences, framework mentions
+2. **Codebase analysis** (`.forge/codebase-analysis.md`): detected languages, frameworks
 
 ### Detection Rules
 
@@ -282,7 +282,7 @@ Use the specified roles instead of auto-detection. Read their prompts from `~/wo
 
 ### Write Config
 
-Write `.bootstrap/agent-config.md`:
+Write `.forge/agent-config.md`:
 ```markdown
 ---
 detected_roles: [list]
@@ -309,18 +309,18 @@ Agent(forge-planner):
     Generate a project specification based on the following inputs.
     
     ## Planning Prompt
-    [content of .bootstrap/planning-prompt.md]
+    [content of .forge/planning-prompt.md]
     
     ## Enriched Intent
-    [content of .bootstrap/intent.md]
+    [content of .forge/intent.md]
     
     ## Codebase Analysis (if exists)
-    [content of .bootstrap/codebase-analysis.md, or "Greenfield — no existing codebase"]
+    [content of .forge/codebase-analysis.md, or "Greenfield — no existing codebase"]
     
-    Write the spec to .bootstrap/spec.md
+    Write the spec to .forge/spec.md
 ```
 
-After the planner returns, read `.bootstrap/spec.md` and present a brief summary to the user. Do not ask for approval — this is informational only. Continue to the next phase.
+After the planner returns, read `.forge/spec.md` and present a brief summary to the user. Do not ask for approval — this is informational only. Continue to the next phase.
 
 Update `status.md` phase to `"spec-critique"`.
 
@@ -338,7 +338,7 @@ Call mcp__codex__codex with:
     Review this project specification for a senior architect audience.
     
     ## Specification
-    [full content of .bootstrap/spec.md]
+    [full content of .forge/spec.md]
     
     ## Original User Intent
     [summary from intent.md]
@@ -379,8 +379,8 @@ If significant changes were made, do one more `codex-reply` round:
 
 ### Write Artifacts
 
-- Update `.bootstrap/spec.md` with improvements
-- Write `.bootstrap/spec-critique.md` with the full negotiation log
+- Update `.forge/spec.md` with improvements
+- Write `.forge/spec-critique.md` with the full negotiation log
 
 Update `status.md` phase to `"cycle-planning"`.
 
@@ -430,7 +430,7 @@ Call mcp__codex__codex-reply with:
 
 Incorporate valid feedback.
 
-Write `.bootstrap/cycle-plan.md`.
+Write `.forge/cycle-plan.md`.
 
 Update `status.md`: phase=`"cycle"`, total_cycles=[count], current_cycle=1.
 
@@ -490,7 +490,7 @@ Call mcp__codex__codex with:
 
 Store `threadId` under `codex_thread_ids.cycle_N_contract`.
 
-Incorporate feedback. Write `.bootstrap/cycles/N/contract.md`.
+Incorporate feedback. Write `.forge/cycles/N/contract.md`.
 
 Update `status.md`: cycle_status=`"implementing"`, iteration=1.
 
@@ -498,7 +498,7 @@ Update `status.md`: cycle_status=`"implementing"`, iteration=1.
 
 #### STEP 5b: IMPLEMENTATION
 
-Read `.bootstrap/agent-config.md` and prepare the domain injection content.
+Read `.forge/agent-config.md` and prepare the domain injection content.
 
 Dispatch `forge-implementer` agent:
 ```
@@ -513,7 +513,7 @@ Agent(forge-implementer):
     [from cycle-plan.md]
     
     ## Completion Contract
-    [full content of .bootstrap/cycles/N/contract.md]
+    [full content of .forge/cycles/N/contract.md]
     
     ## Project Spec (relevant excerpt)
     [relevant section from spec.md]
@@ -524,7 +524,7 @@ Agent(forge-implementer):
     ## Evaluator Feedback (if retry, iteration > 1)
     [full content of evaluation.md findings, if this is a retry]
     
-    Implement the cycle. Write your report to .bootstrap/cycles/N/implementation-notes.md
+    Implement the cycle. Write your report to .forge/cycles/N/implementation-notes.md
     Commit your work to git with descriptive messages.
     
     Work from: [current working directory]
@@ -550,20 +550,20 @@ Agent(forge-evaluator):
     Evaluate the implementation of Cycle N: [cycle name]
     
     ## Completion Contract
-    [full content of .bootstrap/cycles/N/contract.md]
+    [full content of .forge/cycles/N/contract.md]
     
     ## Implementer's Report
-    [full content of .bootstrap/cycles/N/implementation-notes.md]
+    [full content of .forge/cycles/N/implementation-notes.md]
     
     IMPORTANT: Do NOT trust the implementer's report. Verify everything independently
     by reading actual code and running actual commands.
     
-    Write your evaluation to .bootstrap/cycles/N/evaluation.md
+    Write your evaluation to .forge/cycles/N/evaluation.md
     
     Work from: [current working directory]
 ```
 
-Read the evaluator's return and check the verdict in `.bootstrap/cycles/N/evaluation.md`.
+Read the evaluator's return and check the verdict in `.forge/cycles/N/evaluation.md`.
 
 ---
 
@@ -579,7 +579,7 @@ Read the evaluator's return and check the verdict in `.bootstrap/cycles/N/evalua
    1. Continue with 5 more attempts
    2. Simplify the cycle scope
    3. Skip this cycle and continue
-   4. Abort bootstrap"
+   4. Abort forge"
    ```
 3. Otherwise: Go back to Step 5b, passing the evaluator's findings as feedback
 
@@ -610,7 +610,7 @@ Call mcp__codex__codex-reply with:
   threadId: [from cycle_N_contract]
 ```
 
-Write Codex's response to `.bootstrap/cycles/N/codex-review.md`.
+Write Codex's response to `.forge/cycles/N/codex-review.md`.
 
 **If Codex flags critical issues** (not just suggestions — actual broken functionality or missing requirements):
 - Loop back to Step 5b with Codex's findings as additional evaluator feedback
@@ -634,9 +634,9 @@ Log cycle completion. Move to cycle N+1. If all cycles complete, proceed to Phas
 
 ### Claude Assessment
 
-1. Read `.bootstrap/spec.md`
-2. Read all `.bootstrap/cycles/*/codex-review.md` files
-3. Read all `.bootstrap/cycles/*/evaluation.md` files
+1. Read `.forge/spec.md`
+2. Read all `.forge/cycles/*/codex-review.md` files
+3. Read all `.forge/cycles/*/evaluation.md` files
 4. Check each spec feature against the cycle deliverables
 5. Run any end-to-end verification commands
 
@@ -645,7 +645,7 @@ Log cycle completion. Move to cycle N+1. If all cycles complete, proceed to Phas
 ```
 Call mcp__codex__codex with:
   prompt: |
-    Provide a final verdict on this project bootstrap.
+    Provide a final verdict on this project.
     
     ## Original Spec
     [spec.md content]
@@ -666,7 +666,7 @@ Call mcp__codex__codex with:
 
 ### Write Final Review
 
-Write `.bootstrap/final-review.md`:
+Write `.forge/final-review.md`:
 ```markdown
 ---
 verdict: COMPLETE | PARTIAL | INCOMPLETE
@@ -717,16 +717,16 @@ If any agent reports BLOCKED:
 
 ### Session Resume
 
-When `.bootstrap/status.md` exists on initialization:
+When `.forge/status.md` exists on initialization:
 1. Read the current phase and cycle status
 2. Read all existing artifacts to rebuild context
 3. Resume from the exact point indicated by status.md
-4. Announce to the user: "Resuming bootstrap from [phase/cycle description]"
+4. Announce to the user: "Resuming forge from [phase/cycle description]"
 
 ### Git Branch
 
 Before the first implementation cycle (Step 5b, cycle 1):
-1. Create a feature branch: `git checkout -b bootstrap/[slugified-project-name]`
+1. Create a feature branch: `git checkout -b forge/[slugified-project-name]`
 2. Record the branch name in `status.md`
 3. All implementation commits go to this branch
 4. If the branch already exists (resume scenario), check it out
