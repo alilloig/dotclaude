@@ -1,0 +1,29 @@
+{
+  "description": "Forge protocol enforcement — prevents phase skips, unevaluated advances, and missing contracts",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/forge-guard.mjs\" pre-tool-use",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/forge-guard.mjs\" post-tool-use",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

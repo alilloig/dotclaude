@@ -1,0 +1,17 @@
+{
+  "name": "code-forge-rig",
+  "version": "1.0.0",
+  "description": "Code Forge Rig — Code Forge enhanced with programmatic enforcement hooks (from claude-rig patterns) that prevent protocol drift, phase skips, and unevaluated cycle advances.",
+  "author": {
+    "name": "alilloig"
+  },
+  "keywords": ["code-forge", "forge", "multi-agent", "codex", "orchestration", "planning", "enforcement", "rig"],
+  "commands": ["./commands/forge.md"],
+  "skills": "./skills/",
+  "agents": [
+    "./agents/planner.md",
+    "./agents/implementer.md",
+    "./agents/evaluator.md",
+    "./agents/codebase-explorer.md"
+  ]
+}
