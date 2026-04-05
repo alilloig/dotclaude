@@ -1,165 +1,120 @@
-# Code Forge — Multi-Agent Build System
+# Code Forge Rig — Enforcement-Hardened Multi-Agent Build System
 
-Turn a lazy, one-line prompt into a polished project through automated planning, implementation, and evaluation cycles with Claude-Codex cross-checking at every gate.
+Code Forge enhanced with programmatic enforcement hooks inspired by [claude-rig](https://github.com/franklywatson/claude-rig). Same multi-agent protocol as [code-forge](../code-forge/), but with hook-based guardrails that prevent the orchestrator from drifting off-protocol during long sessions.
+
+## Why This Variant Exists
+
+Code Forge's orchestrator follows a ~500-line SKILL.md protocol. In end-to-end testing, the primary failure mode was **protocol drift** — as sessions grew long, the orchestrator would skip phases, bypass Codex gates, or advance past failed evaluations. These are exactly the problems that prose-only instructions cannot reliably prevent.
+
+Code Forge Rig adds a `forge-guard.mjs` hook that enforces the protocol's critical invariants as code. Hooks run as separate processes — the orchestrator cannot talk its way around them.
+
+## What's Different From code-forge
+
+Everything in code-forge is preserved. The only addition is `hooks/`:
+
+```
+code-forge-rig/
+  hooks/
+    hooks.json          # Hook registration (PreToolUse + PostToolUse)
+    forge-guard.mjs     # Enforcement script (348 lines)
+  agents/               # Same as code-forge
+  commands/             # Same as code-forge
+  skills/               # Same as code-forge
+  .claude-plugin/       # Updated plugin.json with new name
+```
+
+## Enforced Invariants
+
+### Blocking (PreToolUse — exit 2)
+
+| Invariant | Trigger | What It Prevents |
+|-----------|---------|-----------------|
+| Contract before implementation | Write to `cycles/N/implementation-notes.md` | Starting implementation without a negotiated completion contract |
+| Evaluation before advance | Write to `cycles/N+1/contract.md` | Moving to the next cycle when the current one has FAIL or no evaluation |
+
+### Advisory (PostToolUse — stderr warning)
+
+| Invariant | Trigger | What It Catches |
+|-----------|---------|----------------|
+| Phase ordering | Write to `status.md` | Jumping to a phase when prerequisite artifacts are missing |
+| Codex gate compliance | Write to `status.md` | Missing Codex review artifacts at required gates (respects `--light` mode) |
+
+## How the Hooks Work
+
+The `forge-guard.mjs` script intercepts all `Write` and `Edit` tool calls targeting `.forge/` paths:
+
+1. **Reads the tool input** from stdin (JSON with `tool_name` and `tool_input.file_path`)
+2. **Skips non-forge files** — zero overhead for normal editing
+3. **Runs invariant checks** against the current `.forge/` artifact state
+4. **Blocks or advises** based on the check type
+
+The hook derives state by:
+- Parsing YAML frontmatter from `.forge/status.md` and `evaluation.md` files
+- Checking file existence for prerequisite artifacts
+- Extracting cycle numbers from file paths
+
+No external dependencies. No network calls. Runs in <100ms.
 
 ## Quick Start
+
+Same as code-forge — just use this plugin instead:
 
 ```
 /forge "Build a real-time task management app with WebSocket collaboration"
 ```
 
-The system will ask you 3-5 questions to sharpen your intent, then run autonomously — planning, implementing, evaluating, and reviewing in cycles until done.
+The hooks are transparent. You'll only notice them when they prevent a protocol violation — a `[BLOCK]` message when the orchestrator tries to skip a required step, or an `[ADVISE]` warning when prerequisite artifacts are missing.
 
-## Design Philosophy
+## Example: Hook in Action
 
-Code Forge is built on principles from [Anthropic's harness design for long-running agents](https://www.anthropic.com/engineering/harness-design-long-running-apps):
-
-- **Generator-Evaluator Separation** — The implementer writes code, a separate skeptical evaluator checks it against a pre-agreed contract. Self-evaluation doesn't work; independent evaluation does.
-- **Codex as Adversarial Reviewer** — At 8 key gates, OpenAI's Codex independently critiques Claude's work. Two different AI systems are much harder to fool than one reviewing itself.
-- **Contracts Before Code** — Every cycle starts with a negotiated completion contract defining objective, measurable "done" criteria. This prevents goalpost-moving and vague quality bars.
-- **Iterative Prompt Refinement** — Even the planning prompt is treated as an artifact worth improving. Claude and Codex take turns critiquing and refining it before planning begins.
-- **File-Based State** — All artifacts live in `.forge/`. Sessions can crash, context can compact, and the system resumes from where it left off.
-
-## How It Works
+If the orchestrator tries to write implementation notes before creating a contract:
 
 ```
-/forge "lazy prompt"
-  |
-  |-- Phase 0:   Intent Sharpening (AskUserQuestion x 3-5)
-  |-- Phase 0.5: Codebase Exploration (existing repos only, 2-3 parallel agents)
-  |-- Phase 1:   Iterative Prompt Refinement (Claude v1 -> Codex v2 -> Claude v3)
-  |-- Phase 2:   High-Level Specification (Planner agent)
-  |-- Phase 3:   Spec Critique + Negotiation (Codex review, 1-2 rounds)
-  |-- Phase 4:   Cycle Planning (3-7 ordered cycles, Codex reviewed)
-  |-- Phase 5+:  Implementation Cycles (per cycle):
-  |     |-- 5a: Contract Negotiation (Codex reviewed)
-  |     |-- 5b: Implementation (Implementer agent)
-  |     |-- 5c: Evaluation (Evaluator agent, PASS/FAIL)
-  |     |-- 5d: Loop until PASS (max 5 iterations)
-  |     |-- 5e: Codex Cycle Review (independent report)
-  |     '-- Continue to next cycle (no human pause)
-  |
-  '-- Phase F:   Final Review (Claude + Codex holistic verdict)
+[BLOCK] Forge Guard: missing contract
+
+Cannot write implementation notes for cycle 2 — no contract found.
+Expected: /path/to/.forge/cycles/2/contract.md
+
+The forge protocol requires a negotiated completion contract (Phase 5a)
+before implementation begins. Complete contract negotiation first.
 ```
 
-## Usage Examples
+The tool call is rejected (exit 2). The orchestrator must create the contract first.
 
-### Greenfield project
-```
-/forge "Build a CLI tool in Rust that converts Markdown to beautiful PDF with syntax highlighting"
-```
+## Benchmarking
 
-### Major feature in existing codebase
+Use the [forge-bench](../forge-bench/) companion plugin to run head-to-head comparisons between code-forge and code-forge-rig:
+
 ```
-/forge "Add real-time collaborative editing to the existing document editor using CRDTs"
+/forge-bench "Build a CLI tool in Rust" --budget 60
 ```
 
-### With domain-specific agents
-```
-/forge "Build a Sui Move NFT marketplace with Next.js frontend" --agents move-agent,frontend-agent
-```
+Or audit any existing forge run:
 
-### Cost-conscious mode
 ```
-/forge "Simple REST API for a todo app" --light
+/forge-audit path/to/.forge
 ```
 
-## Flags
+## Design Rationale
 
-| Flag | Description |
-|------|-------------|
-| `--light` | Skip optional Codex gates (G1c, G3, G4) — reduces Codex calls by ~30% |
-| `--agents ROLES` | Override auto-detected agent roles (comma-separated, from `~/.claude/_meta/AGENTS.md`) |
+The enforcement approach comes from studying [claude-rig](https://github.com/franklywatson/claude-rig), a TypeScript middleware harness for Claude Code. Key patterns adopted:
 
-## Artifacts
-
-All artifacts are written to `.forge/` in the project root:
-
-| File | Phase | Content |
-|------|-------|---------|
-| `status.md` | all | Current state — enables resume after crash |
-| `intent.md` | 0 | Enriched user intent from Q&A |
-| `codebase-analysis.md` | 0.5 | Existing repo architecture map (if applicable) |
-| `prompt-evolution.md` | 1 | Full log of Claude-Codex prompt refinement |
-| `planning-prompt.md` | 1 | Final converged planning prompt |
-| `agent-config.md` | 1.5 | Auto-detected agent roles + domain injection |
-| `spec.md` | 2-3 | High-level project specification |
-| `spec-critique.md` | 3 | Codex critique + negotiation log |
-| `cycle-plan.md` | 4 | Ordered development cycles |
-| `cycles/N/contract.md` | 5a | Objective completion criteria for cycle N |
-| `cycles/N/implementation-notes.md` | 5b | Implementer's report |
-| `cycles/N/evaluation.md` | 5c | Evaluator's assessment (PASS/FAIL) |
-| `cycles/N/codex-review.md` | 5e | Codex's independent review |
-| `final-review.md` | F | Overall verdict with spec compliance checklist |
-
-## Agents
-
-| Agent | Model | Color | Role |
-|-------|-------|-------|------|
-| `forge-planner` | opus | green | Generates high-level specs from refined prompts |
-| `forge-implementer` | opus/sonnet | blue | Implements code per cycle, handles retry with feedback |
-| `forge-evaluator` | opus | red | Skeptical contract-based review, runs actual verification |
-| `forge-codebase-explorer` | sonnet | cyan | Fast parallel codebase mapping for existing repos |
-
-## Auto-Detection
-
-The system inspects your intent and codebase to detect tech stack and inject matching domain expertise from `~/.claude/_meta/AGENTS.md`:
-
-| Signal | Injected Role | What It Adds |
-|--------|--------------|-------------|
-| `.move` files, `Move.toml`, "Sui" in intent | `move-agent` | Sui conventions, sui-pilot docs, `sui move test` verification |
-| `next.config.*`, React deps, "Next.js" | `frontend-agent` | SSR patterns, dapp-kit, TypeScript strict mode |
-| No match | Generic | No domain injection — works for any stack |
-
-Override with `--agents move-agent,frontend-agent` to force specific roles.
-
-## Quality Gates
-
-The system resists "bare minimum then stop" through layered defenses:
-
-1. **Contract pre-negotiation** — "Done" is defined before coding starts, not after
-2. **Skeptical evaluator** — Reads actual code and runs actual tests, doesn't trust claims
-3. **Codex independent review** — A completely separate AI validates each cycle
-4. **Verification-before-completion** — Must show test output, not just say "tests pass"
-5. **Multi-iteration budget** — Up to 5 impl/eval rounds per cycle
-6. **Final holistic review** — Planner + Codex check all cycles against the original spec
-
-## Cost Estimates
-
-| Project Size | Cycles | Codex Calls | Estimated Cost (Claude + Codex) |
-|-------------|--------|-------------|-------------------------------|
-| Small (CLI tool) | 3 | ~12 | $30-60 |
-| Medium (web app) | 5 | ~18 | $60-120 |
-| Large (full-stack) | 7 | ~22 | $100-200 |
-
-Use `--light` to reduce Codex calls by ~30%.
-
-## Resume
-
-If a session crashes mid-forge, just run `/forge` again in the same directory. The system reads `.forge/status.md` and resumes from the last completed phase/cycle.
-
-To start fresh: delete the `.forge/` directory and re-run.
+- **Composable check functions** — each invariant is an independent function returning `string | null`, combined with `violations.join('\n\n---\n\n')`
+- **`[BLOCK]`/`[ADVISE]` prefix convention** — consistent message format matching rig's enforcement pipeline
+- **Graceful degradation** — unparseable input or missing files result in exit 0 (never crash the hook)
+- **Artifact-based validation** — check file existence and frontmatter instead of tracking runtime state
 
 ## Plugin Dependencies
 
+Same as code-forge:
+
 | Plugin | Status | Purpose |
 |--------|--------|---------|
-| `codex-bridge@local` | **Required** | Provides `mcp__codex__codex` and `mcp__codex__codex-reply` MCP tools for all Codex gates (G1a–G6). Without it, forge degrades to Claude-only mode (no cross-checking). |
-| `superpowers@claude-plugins-official` | **Strongly Recommended** | Behavioral meta-skills (`verification-before-completion`, `executing-plans`, `subagent-driven-development`, `dispatching-parallel-agents`) reinforce the forge protocol's rigor. Without superpowers enabled, the orchestrator may skip phases or Codex gates. |
+| `codex-bridge@local` | **Required** | Provides Codex MCP tools for all gates |
+| `superpowers@claude-plugins-official` | **Strongly Recommended** | Behavioral meta-skills reinforce protocol rigor |
 
-### Setup
+## See Also
 
-- **Codex Bridge**: Install at `~/.claude/plugins/codex-bridge/` and authenticate (`codex auth`)
-- **Superpowers**: Enable in settings — `"superpowers@claude-plugins-official": true`
-- Both plugins must be enabled in `settings.json` under `enabledPlugins`
-
-## Troubleshooting
-
-| Issue | Fix |
-|-------|-----|
-| `mcp__codex__codex` tool not found | Ensure Codex Bridge plugin is in `~/.claude/plugins/codex-bridge/` |
-| Codex auth error | Run `! codex auth` in Claude Code prompt |
-| Evaluator loops 5 times | System auto-escalates to user with options |
-| Session crashed mid-cycle | Re-run `/forge` — resumes from `status.md` |
-| Want to restart from scratch | Delete `.forge/` directory, then `/forge` again |
-| Agents use wrong domain | Use `--agents role1,role2` to override auto-detection |
+- [code-forge](../code-forge/) — Original variant (prose-only protocol, no hooks)
+- [forge-bench](../forge-bench/) — A/B benchmarking framework
+- [claude-rig](https://github.com/franklywatson/claude-rig) — The enforcement patterns this variant is based on
