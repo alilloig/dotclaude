@@ -1,0 +1,14 @@
+{
+  "name": "forge-bench",
+  "version": "1.0.0",
+  "description": "Benchmarking framework for comparing Code Forge plugin variants. Runs identical prompts through different forge versions, audits protocol adherence, and produces comparison reports.",
+  "author": {
+    "name": "alilloig"
+  },
+  "keywords": ["forge", "benchmark", "evaluation", "comparison", "audit"],
+  "commands": [
+    "./commands/forge-audit.md",
+    "./commands/forge-bench.md",
+    "./commands/forge-compare.md"
+  ]
+}
