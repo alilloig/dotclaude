@@ -106,7 +106,7 @@ External tools and documentation are integrated as git submodules:
 | Submodule | Path | Purpose |
 |---|---|---|
 | move-code-quality | `skills/move-code-quality/` | Move code quality checker skill |
-| sui-pilot | `sui-pilot/` | Sui/Walrus/Seal documentation copilot (500+ doc files) |
+| sui-pilot | `sui-pilot/` | Sui/Walrus/Seal documentation copilot (434 doc files) |
 | move-code-review | `skills/move-code-review/` | Move code security/architecture review |
 
 ```bash
