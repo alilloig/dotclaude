@@ -81,7 +81,7 @@ official_plugins=(
     notion playground playwright plugin-dev pr-review-toolkit
     pyright-lsp ralph-loop remember rust-analyzer-lsp
     security-guidance skill-creator slack superpowers
-    swift-lsp telegram typescript-lsp vercel
+    swift-lsp telegram typescript-lsp
 )
 for p in "${official_plugins[@]}"; do
     install_plugin "${p}@claude-plugins-official"
@@ -106,13 +106,12 @@ disabled_plugins=(
     linear@claude-plugins-official
     playwright@claude-plugins-official
     slack@claude-plugins-official
-    vercel@claude-plugins-official
     notion@claude-plugins-official
 )
 for p in "${disabled_plugins[@]}"; do
     claude plugin disable "$p" 2>/dev/null || true
 done
-echo "  ✓ Disabled: github, linear, playwright, slack, vercel, notion"
+echo "  ✓ Disabled: github, linear, playwright, slack, notion"
 
 # --- Done ---
 echo ""

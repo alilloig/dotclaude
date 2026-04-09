@@ -11,6 +11,7 @@
     ],
     "defaultMode": "default"
   },
+  "model": "opus[1m]",
   "hooks": {
     "SessionStart": [
       {
@@ -79,11 +80,10 @@
     "ralph-loop@claude-plugins-official": true,
     "rust-analyzer-lsp@claude-plugins-official": true,
     "security-guidance@claude-plugins-official": true,
-    "slack@claude-plugins-official": false,
+    "slack@claude-plugins-official": true,
     "superpowers@claude-plugins-official": true,
     "swift-lsp@claude-plugins-official": true,
     "typescript-lsp@claude-plugins-official": true,
-    "vercel@claude-plugins-official": false,
     "skill-creator@claude-plugins-official": true,
     "telegram@claude-plugins-official": true,
     "remember@claude-plugins-official": true,
@@ -113,5 +113,6 @@
     }
   },
   "effortLevel": "high",
+  "autoUpdatesChannel": "stable",
   "skipDangerousModePermissionPrompt": true
 }
