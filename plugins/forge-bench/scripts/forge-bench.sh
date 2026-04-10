@@ -108,12 +108,10 @@ if [[ "$USE_TMUX" == "true" ]]; then
   # TMUX MODE: visible side-by-side panes
   # =============================================
 
-  # --- Write forge prompts and autonomous prompt to files ---
+  # --- Write forge prompts to files ---
   # Avoids shell quoting issues when embedding in wrapper scripts.
   echo "$FORGE_PROMPT_ORIGINAL" > "${BENCH_DIR}/original/.forge_prompt"
   echo "$FORGE_PROMPT_RIG" > "${BENCH_DIR}/rig/.forge_prompt"
-  echo "$AUTONOMOUS_PROMPT" > "${BENCH_DIR}/original/.autonomous_prompt"
-  cp "${BENCH_DIR}/original/.autonomous_prompt" "${BENCH_DIR}/rig/.autonomous_prompt"
 
   # --- Generate per-run wrapper scripts ---
   for VARIANT in original rig; do
@@ -139,7 +137,6 @@ BUDGET="${BUDGET}"
 cd "\${BENCH_DIR}/\${VARIANT}"
 
 FORGE_PROMPT=\$(cat .forge_prompt)
-AUTONOMOUS_PROMPT=\$(cat .autonomous_prompt)
 
 echo ""
 echo "╔══════════════════════════════════════════╗"
@@ -148,76 +145,29 @@ echo "║  Started: \$(date)"
 echo "╚══════════════════════════════════════════╝"
 echo ""
 
-# Run claude with stream-json, tee to file, display filtered output
+# Run claude interactively — user can watch and interact in this pane
 EXIT_CODE=0
-claude --print \\
-  --output-format stream-json \\
-  --verbose \\
+START_TS=\$(date +%s)
+
+claude \\
+  --permission-mode bypassPermissions \\
   --model "\${MODEL}" \\
   --max-budget-usd "\${BUDGET}" \\
-  --dangerously-skip-permissions \\
-  --append-system-prompt "\${AUTONOMOUS_PROMPT}" \\
-  "\${FORGE_PROMPT}" \\
-  2> stderr.log \\
-  | tee stream.jsonl \\
-  | python3 -u -c '
-import sys, json
+  "\${FORGE_PROMPT}" || EXIT_CODE=\$?
 
-for line in sys.stdin:
-    line = line.strip()
-    if not line:
-        continue
-    try:
-        evt = json.loads(line)
-        t = evt.get("type", "")
-        sub = evt.get("subtype", "")
+END_TS=\$(date +%s)
+DURATION_MS=\$(( (END_TS - START_TS) * 1000 ))
 
-        if t == "assistant":
-            for block in evt.get("message", {}).get("content", []):
-                bt = block.get("type", "")
-                if bt == "text":
-                    text = block.get("text", "")
-                    for chunk in [text[i:i+300] for i in range(0, len(text), 300)]:
-                        print(chunk)
-                elif bt == "tool_use":
-                    name = block.get("name", "?")
-                    print(f"\033[36m[TOOL] {name}\033[0m")
-
-        elif t == "result":
-            cost = evt.get("total_cost_usd", 0)
-            turns = evt.get("num_turns", "?")
-            dur = evt.get("duration_ms", 0) // 1000
-            stop = evt.get("stop_reason", "")
-            print(f"\n\033[32m{chr(61)*40}\033[0m")
-            print(f"\033[32mDONE  Cost: \${cost:.2f}  Turns: {turns}  Duration: {dur}s  Stop: {stop}\033[0m")
-            print(f"\033[32m{chr(61)*40}\033[0m")
-
-        elif t == "system" and sub == "init":
-            sid = evt.get("session_id", "?")
-            print(f"\033[90m[session {sid[:8]}...]\033[0m")
-
-    except Exception:
-        pass
-    sys.stdout.flush()
-' || EXIT_CODE=\$?
-
-# Extract the result event from stream.jsonl -> session.json
+# Write minimal session.json with what we can measure
 python3 -c "
 import json
-last_result = None
-for line in open('stream.jsonl'):
-    line = line.strip()
-    if not line: continue
-    try:
-        evt = json.loads(line)
-        if evt.get('type') == 'result':
-            last_result = evt
-    except: pass
-if last_result:
-    json.dump(last_result, open('session.json', 'w'))
-else:
-    import sys
-    print('WARNING: No result event found in stream', file=sys.stderr)
+json.dump({
+    'duration_ms': \${DURATION_MS},
+    'total_cost_usd': 0,
+    'num_turns': 0,
+    'stop_reason': 'end_turn',
+    'usage': {}
+}, open('session.json', 'w'))
 " 2>/dev/null
 
 # Write exit code for parent
@@ -276,7 +226,6 @@ WRAPPER_EOF
   tmux kill-window -t "${TMUX_SESSION}:${BENCH_WINDOW}" 2>/dev/null || true
   rm -f "${BENCH_DIR}/original/run.sh" "${BENCH_DIR}/rig/run.sh"
   rm -f "${BENCH_DIR}/original/.forge_prompt" "${BENCH_DIR}/rig/.forge_prompt"
-  rm -f "${BENCH_DIR}/original/.autonomous_prompt" "${BENCH_DIR}/rig/.autonomous_prompt"
 
 else
   # =============================================
