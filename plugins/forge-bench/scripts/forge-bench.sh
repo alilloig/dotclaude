@@ -40,9 +40,25 @@ fi
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 BENCH_LABEL="${LABEL:-bench-${TIMESTAMP}}"
 BENCH_DIR=".forge-bench/${BENCH_LABEL}"
-ABS_BENCH_DIR="$(pwd)/${BENCH_DIR}"
 
-mkdir -p "${BENCH_DIR}/original" "${BENCH_DIR}/rig"
+# --- Setup project directories in working directory ---
+# Projects are created at ./forge/ and ./forge-rig/ for easy access.
+# If they already exist, suffix with timestamp to avoid conflicts.
+DIR_ORIGINAL="forge"
+DIR_RIG="forge-rig"
+if [[ -d "$DIR_ORIGINAL" ]]; then
+  DIR_ORIGINAL="forge-${TIMESTAMP}"
+  echo "Warning: forge/ exists, using ${DIR_ORIGINAL}/ instead"
+fi
+if [[ -d "$DIR_RIG" ]]; then
+  DIR_RIG="forge-rig-${TIMESTAMP}"
+  echo "Warning: forge-rig/ exists, using ${DIR_RIG}/ instead"
+fi
+
+ABS_DIR_ORIGINAL="$(pwd)/${DIR_ORIGINAL}"
+ABS_DIR_RIG="$(pwd)/${DIR_RIG}"
+
+mkdir -p "${BENCH_DIR}" "${DIR_ORIGINAL}" "${DIR_RIG}"
 
 # Save the prompt
 echo "$PROMPT" > "${BENCH_DIR}/prompt.txt"
@@ -56,7 +72,9 @@ cat > "${BENCH_DIR}/meta.json" << METAEOF
   "label": "${BENCH_LABEL}",
   "started_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
   "plugin_original": "code-forge",
-  "plugin_rig": "code-forge-rig"
+  "plugin_rig": "code-forge-rig",
+  "dir_original": "${DIR_ORIGINAL}",
+  "dir_rig": "${DIR_RIG}"
 }
 METAEOF
 
@@ -64,7 +82,8 @@ echo "=== Forge Bench ==="
 echo "Prompt: ${PROMPT}"
 echo "Budget: \$${BUDGET} per run"
 echo "Model:  ${MODEL}"
-echo "Output: ${BENCH_DIR}/"
+echo "Projects: ${DIR_ORIGINAL}/ and ${DIR_RIG}/"
+echo "Metadata: ${BENCH_DIR}/"
 echo ""
 
 # --- Construct the forge invocation prompts ---
@@ -110,8 +129,8 @@ if [[ "$USE_TMUX" == "true" ]]; then
 
   # --- Write forge prompts to files ---
   # Avoids shell quoting issues when embedding in wrapper scripts.
-  echo "$FORGE_PROMPT_ORIGINAL" > "${BENCH_DIR}/original/.forge_prompt"
-  echo "$FORGE_PROMPT_RIG" > "${BENCH_DIR}/rig/.forge_prompt"
+  echo "$FORGE_PROMPT_ORIGINAL" > "${DIR_ORIGINAL}/.forge_prompt"
+  echo "$FORGE_PROMPT_RIG" > "${DIR_RIG}/.forge_prompt"
 
   # --- Generate per-run wrapper scripts ---
   for VARIANT in original rig; do
@@ -123,18 +142,25 @@ if [[ "$USE_TMUX" == "true" ]]; then
       LABEL_UPPER="RIG"
     fi
 
-    cat > "${BENCH_DIR}/${VARIANT}/run.sh" << WRAPPER_EOF
+    if [[ "$VARIANT" == "original" ]]; then
+      RUN_DIR="${DIR_ORIGINAL}"
+      ABS_RUN_DIR="${ABS_DIR_ORIGINAL}"
+    else
+      RUN_DIR="${DIR_RIG}"
+      ABS_RUN_DIR="${ABS_DIR_RIG}"
+    fi
+
+    cat > "${RUN_DIR}/run.sh" << WRAPPER_EOF
 #!/usr/bin/env bash
 set -uo pipefail
 
-VARIANT="${VARIANT}"
 LABEL_UPPER="${LABEL_UPPER}"
-BENCH_DIR="${ABS_BENCH_DIR}"
+RUN_DIR="${ABS_RUN_DIR}"
 CHANNEL="${CHANNEL}"
 MODEL="${MODEL}"
 BUDGET="${BUDGET}"
 
-cd "\${BENCH_DIR}/\${VARIANT}"
+cd "\${RUN_DIR}"
 
 FORGE_PROMPT=\$(cat .forge_prompt)
 
@@ -184,17 +210,17 @@ tmux wait-for -S "\${CHANNEL}"
 sleep 86400 || true
 WRAPPER_EOF
 
-    chmod +x "${BENCH_DIR}/${VARIANT}/run.sh"
+    chmod +x "${RUN_DIR}/run.sh"
   done
 
   # --- Create tmux window with two panes ---
   echo "[$(date +%H:%M:%S)] Launching tmux panes..."
 
   tmux new-window -n "${BENCH_WINDOW}" -d \
-    "bash '${ABS_BENCH_DIR}/original/run.sh'"
+    "bash '${ABS_DIR_ORIGINAL}/run.sh'"
 
   tmux split-window -h -t "${TMUX_SESSION}:${BENCH_WINDOW}" \
-    "bash '${ABS_BENCH_DIR}/rig/run.sh'"
+    "bash '${ABS_DIR_RIG}/run.sh'"
 
   # Label panes with titles
   tmux select-pane -t "${TMUX_SESSION}:${BENCH_WINDOW}.0" -T "ORIGINAL (code-forge)"
@@ -210,11 +236,11 @@ WRAPPER_EOF
 
   # --- Wait for both via tmux channels ---
   tmux wait-for "${CHANNEL_ORIG}"
-  EXIT_ORIGINAL=$(cat "${BENCH_DIR}/original/.exit_code" 2>/dev/null || echo "1")
+  EXIT_ORIGINAL=$(cat "${DIR_ORIGINAL}/.exit_code" 2>/dev/null || echo "1")
   echo "[$(date +%H:%M:%S)] ORIGINAL run finished (exit ${EXIT_ORIGINAL})"
 
   tmux wait-for "${CHANNEL_RIG}"
-  EXIT_RIG=$(cat "${BENCH_DIR}/rig/.exit_code" 2>/dev/null || echo "1")
+  EXIT_RIG=$(cat "${DIR_RIG}/.exit_code" 2>/dev/null || echo "1")
   echo "[$(date +%H:%M:%S)] RIG run finished (exit ${EXIT_RIG})"
 
   echo ""
@@ -224,8 +250,9 @@ WRAPPER_EOF
 
   # Kill the benchmark window and clean up ephemeral files
   tmux kill-window -t "${TMUX_SESSION}:${BENCH_WINDOW}" 2>/dev/null || true
-  rm -f "${BENCH_DIR}/original/run.sh" "${BENCH_DIR}/rig/run.sh"
-  rm -f "${BENCH_DIR}/original/.forge_prompt" "${BENCH_DIR}/rig/.forge_prompt"
+  rm -f "${DIR_ORIGINAL}/run.sh" "${DIR_RIG}/run.sh"
+  rm -f "${DIR_ORIGINAL}/.forge_prompt" "${DIR_RIG}/.forge_prompt"
+  rm -f "${DIR_ORIGINAL}/.exit_code" "${DIR_RIG}/.exit_code"
 
 else
   # =============================================
@@ -249,7 +276,7 @@ else
 
   echo "[$(date +%H:%M:%S)] Starting ORIGINAL run (code-forge)..."
   (
-    cd "${BENCH_DIR}/original"
+    cd "${DIR_ORIGINAL}"
     claude "${CLAUDE_FLAGS[@]}" \
       "${FORGE_PROMPT_ORIGINAL}" \
       > session.json 2> stderr.log || true
@@ -259,7 +286,7 @@ else
 
   echo "[$(date +%H:%M:%S)] Starting RIG run (code-forge-rig)..."
   (
-    cd "${BENCH_DIR}/rig"
+    cd "${DIR_RIG}"
     claude "${CLAUDE_FLAGS[@]}" \
       "${FORGE_PROMPT_RIG}" \
       > session.json 2> stderr.log || true
@@ -289,12 +316,12 @@ echo "Running protocol audits..."
 AUDIT_ORIGINAL="null"
 AUDIT_RIG="null"
 
-if [[ -d "${BENCH_DIR}/original/.forge" ]]; then
-  AUDIT_ORIGINAL=$(node "${SCRIPT_DIR}/forge-audit.mjs" "${BENCH_DIR}/original/.forge" 2>/dev/null || echo "null")
+if [[ -d "${DIR_ORIGINAL}/.forge" ]]; then
+  AUDIT_ORIGINAL=$(node "${SCRIPT_DIR}/forge-audit.mjs" "${DIR_ORIGINAL}/.forge" 2>/dev/null || echo "null")
 fi
 
-if [[ -d "${BENCH_DIR}/rig/.forge" ]]; then
-  AUDIT_RIG=$(node "${SCRIPT_DIR}/forge-audit.mjs" "${BENCH_DIR}/rig/.forge" 2>/dev/null || echo "null")
+if [[ -d "${DIR_RIG}/.forge" ]]; then
+  AUDIT_RIG=$(node "${SCRIPT_DIR}/forge-audit.mjs" "${DIR_RIG}/.forge" 2>/dev/null || echo "null")
 fi
 
 # --- Extract session stats ---
@@ -319,8 +346,8 @@ except: print('null')
   fi
 }
 
-STATS_ORIGINAL=$(extract_stats "${BENCH_DIR}/original/session.json")
-STATS_RIG=$(extract_stats "${BENCH_DIR}/rig/session.json")
+STATS_ORIGINAL=$(extract_stats "${DIR_ORIGINAL}/session.json")
+STATS_RIG=$(extract_stats "${DIR_RIG}/session.json")
 
 # --- Compose results ---
 # Write JSON inputs as temp files to avoid shell interpolation issues
