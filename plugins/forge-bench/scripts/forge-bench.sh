@@ -100,19 +100,14 @@ AUTONOMOUS_PROMPT="You are running in headless benchmark mode. NEVER use AskUser
 # --- Detect tmux ---
 USE_TMUX=false
 TMUX_SESSION=""
+BENCH_WINDOW=""
 CHANNEL_ORIG=""
 CHANNEL_RIG=""
-PANE_ORIG=""
-PANE_RIG=""
 
-if command -v tmux &>/dev/null && tmux list-sessions &>/dev/null; then
+if command -v tmux &>/dev/null && [[ -n "${TMUX:-}" ]]; then
   USE_TMUX=true
-  # If inside tmux, use current session; otherwise pick the first available session
-  if [[ -n "${TMUX:-}" ]]; then
-    TMUX_SESSION=$(tmux display-message -p '#S')
-  else
-    TMUX_SESSION=$(tmux list-sessions -F '#S' | head -1)
-  fi
+  TMUX_SESSION=$(tmux display-message -p '#S')
+  BENCH_WINDOW="forge-${BENCH_LABEL}"
   CHANNEL_ORIG="fb-${TIMESTAMP}-orig"
   CHANNEL_RIG="fb-${TIMESTAMP}-rig"
 fi
@@ -122,8 +117,7 @@ cleanup() {
   if [[ "$USE_TMUX" == "true" ]]; then
     tmux wait-for -S "${CHANNEL_ORIG}" 2>/dev/null || true
     tmux wait-for -S "${CHANNEL_RIG}" 2>/dev/null || true
-    [[ -n "$PANE_ORIG" ]] && tmux kill-pane -t "$PANE_ORIG" 2>/dev/null || true
-    [[ -n "$PANE_RIG" ]] && tmux kill-pane -t "$PANE_RIG" 2>/dev/null || true
+    tmux kill-window -t "${TMUX_SESSION}:${BENCH_WINDOW}" 2>/dev/null || true
   fi
 }
 trap cleanup INT TERM
@@ -219,29 +213,23 @@ WRAPPER_EOF
     chmod +x "${RUN_DIR}/run.sh"
   done
 
-  # --- Split the active window to add forge panes alongside ---
-  # Find the active window in the target session
-  ACTIVE_WINDOW=$(tmux display-message -t "${TMUX_SESSION}" -p '#I')
+  # --- Create tmux window with two panes ---
+  echo "[$(date +%H:%M:%S)] Launching tmux panes..."
 
-  echo "[$(date +%H:%M:%S)] Splitting current window into forge panes..."
+  tmux new-window -n "${BENCH_WINDOW}" -d \
+    "bash '${ABS_DIR_ORIGINAL}/run.sh'"
 
-  # Split the active window horizontally — ORIGINAL pane appears on the right
-  PANE_ORIG=$(tmux split-window -h -t "${TMUX_SESSION}:${ACTIVE_WINDOW}" \
-    -P -F '#{pane_id}' \
-    "bash '${ABS_DIR_ORIGINAL}/run.sh'")
-
-  # Split the ORIGINAL pane vertically — RIG pane appears below it
-  PANE_RIG=$(tmux split-window -v -t "$PANE_ORIG" \
-    -P -F '#{pane_id}' \
-    "bash '${ABS_DIR_RIG}/run.sh'")
+  tmux split-window -h -t "${TMUX_SESSION}:${BENCH_WINDOW}" \
+    "bash '${ABS_DIR_RIG}/run.sh'"
 
   # Label panes with titles
-  tmux select-pane -t "$PANE_ORIG" -T "ORIGINAL (code-forge)"
-  tmux select-pane -t "$PANE_RIG" -T "RIG (code-forge-rig)"
-  tmux set-option -t "${TMUX_SESSION}:${ACTIVE_WINDOW}" pane-border-format " #{pane_title} " 2>/dev/null || true
-  tmux set-option -t "${TMUX_SESSION}:${ACTIVE_WINDOW}" pane-border-status top 2>/dev/null || true
+  tmux select-pane -t "${TMUX_SESSION}:${BENCH_WINDOW}.0" -T "ORIGINAL (code-forge)"
+  tmux select-pane -t "${TMUX_SESSION}:${BENCH_WINDOW}.1" -T "RIG (code-forge-rig)"
+  tmux set-option -t "${TMUX_SESSION}:${BENCH_WINDOW}" pane-border-format " #{pane_title} " 2>/dev/null || true
+  tmux set-option -t "${TMUX_SESSION}:${BENCH_WINDOW}" pane-border-status top 2>/dev/null || true
 
-  echo "[$(date +%H:%M:%S)] Both runs in progress alongside your session."
+  echo "[$(date +%H:%M:%S)] Both runs in progress in tmux window '${BENCH_WINDOW}'"
+  echo "  Switch to it:  tmux select-window -t '${BENCH_WINDOW}'"
   echo ""
   echo "[$(date +%H:%M:%S)] Waiting for both runs to complete..."
   echo ""
@@ -260,9 +248,8 @@ WRAPPER_EOF
   echo "  Original exit: ${EXIT_ORIGINAL}"
   echo "  Rig exit:      ${EXIT_RIG}"
 
-  # Kill only the forge panes (not the whole window) and clean up
-  tmux kill-pane -t "$PANE_ORIG" 2>/dev/null || true
-  tmux kill-pane -t "$PANE_RIG" 2>/dev/null || true
+  # Kill the benchmark window and clean up ephemeral files
+  tmux kill-window -t "${TMUX_SESSION}:${BENCH_WINDOW}" 2>/dev/null || true
   rm -f "${DIR_ORIGINAL}/run.sh" "${DIR_RIG}/run.sh"
   rm -f "${DIR_ORIGINAL}/.forge_prompt" "${DIR_RIG}/.forge_prompt"
   rm -f "${DIR_ORIGINAL}/.exit_code" "${DIR_RIG}/.exit_code"
