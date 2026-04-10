@@ -5,7 +5,7 @@
       "repo": "anthropics/claude-plugins-official"
     },
     "installLocation": "/Users/alilloig/.claude/plugins/marketplaces/claude-plugins-official",
-    "lastUpdated": "2026-04-09T11:40:04.826Z"
+    "lastUpdated": "2026-04-10T11:03:32.824Z"
   },
   "impeccable": {
     "source": {
@@ -13,7 +13,7 @@
       "repo": "pbakaus/impeccable"
     },
     "installLocation": "/Users/alilloig/.claude/plugins/marketplaces/impeccable",
-    "lastUpdated": "2026-04-02T09:46:58.825Z"
+    "lastUpdated": "2026-04-09T12:08:07.843Z"
   },
   "local": {
     "source": {
@@ -21,6 +21,6 @@
       "path": "/Users/alilloig/workspace/claudefiles/plugins/local"
     },
     "installLocation": "/Users/alilloig/workspace/claudefiles/plugins/local",
-    "lastUpdated": "2026-04-02T09:46:58.825Z"
+    "lastUpdated": "2026-04-09T12:08:07.843Z"
   }
 }

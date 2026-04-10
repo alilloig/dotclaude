@@ -91,7 +91,7 @@ done
 install_plugin "impeccable@impeccable"
 
 # Local plugins
-for p in code-forge codex-bridge sui-wallet; do
+for p in code-forge code-forge-rig codex-bridge forge-bench sui-wallet; do
     install_plugin "${p}@local"
 done
 

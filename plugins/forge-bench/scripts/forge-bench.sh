@@ -9,9 +9,11 @@ set -euo pipefail
 #   original/  — run with code-forge plugin
 #   rig/       — run with code-forge-rig plugin
 #   results.json — merged session metadata + audit scorecards
+#
+# When running inside tmux, both sessions appear in visible side-by-side panes.
+# Otherwise, falls back to hidden background subshells.
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PLUGIN_BASE="${SCRIPT_DIR}/../.."  # points to plugins/ parent
 
 # --- Defaults ---
 BUDGET="50"
@@ -38,6 +40,7 @@ fi
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 BENCH_LABEL="${LABEL:-bench-${TIMESTAMP}}"
 BENCH_DIR=".forge-bench/${BENCH_LABEL}"
+ABS_BENCH_DIR="$(pwd)/${BENCH_DIR}"
 
 mkdir -p "${BENCH_DIR}/original" "${BENCH_DIR}/rig"
 
@@ -64,57 +67,271 @@ echo "Model:  ${MODEL}"
 echo "Output: ${BENCH_DIR}/"
 echo ""
 
-# --- Construct the forge invocation prompt ---
-# We invoke /forge directly since it's the command entry point
-FORGE_PROMPT="/forge ${PROMPT}"
+# --- Construct the forge invocation prompts ---
+# Use fully qualified command names (plugin:command) so each session
+# invokes the correct plugin variant. Both plugins are installed @local.
+FORGE_PROMPT_ORIGINAL="/code-forge:forge ${PROMPT}"
+FORGE_PROMPT_RIG="/code-forge-rig:forge ${PROMPT}"
 
-# --- Common claude flags ---
-CLAUDE_FLAGS=(
-  --print
-  --output-format json
-  --model "${MODEL}"
-  --max-budget-usd "${BUDGET}"
-  --dangerously-skip-permissions
-)
+# --- Autonomous system prompt ---
+# Instructs the session to work fully autonomously since --print mode
+# is headless and cannot handle AskUserQuestion.
+AUTONOMOUS_PROMPT="You are running in headless benchmark mode. NEVER use AskUserQuestion — there is no user to answer. Make all decisions autonomously using reasonable defaults: prefer the recommended option when presented with choices, prefer PoC/prototype quality bar, and prefer mocking external services unless the prompt explicitly requires real integrations. Do not block on missing input — decide and proceed."
 
-# --- Run original (code-forge) ---
-echo "[$(date +%H:%M:%S)] Starting ORIGINAL run (code-forge)..."
-(
-  cd "${BENCH_DIR}/original"
-  claude "${CLAUDE_FLAGS[@]}" \
-    --plugin-dir "${PLUGIN_BASE}/code-forge" \
-    "${FORGE_PROMPT}" \
-    > session.json 2> stderr.log || true
-  echo "[$(date +%H:%M:%S)] ORIGINAL run finished."
-) &
-PID_ORIGINAL=$!
+# --- Detect tmux ---
+USE_TMUX=false
+TMUX_SESSION=""
+BENCH_WINDOW=""
+CHANNEL_ORIG=""
+CHANNEL_RIG=""
 
-# --- Run rig (code-forge-rig) ---
-echo "[$(date +%H:%M:%S)] Starting RIG run (code-forge-rig)..."
-(
-  cd "${BENCH_DIR}/rig"
-  claude "${CLAUDE_FLAGS[@]}" \
-    --plugin-dir "${PLUGIN_BASE}/code-forge-rig" \
-    "${FORGE_PROMPT}" \
-    > session.json 2> stderr.log || true
-  echo "[$(date +%H:%M:%S)] RIG run finished."
-) &
-PID_RIG=$!
+if command -v tmux &>/dev/null && [[ -n "${TMUX:-}" ]]; then
+  USE_TMUX=true
+  TMUX_SESSION=$(tmux display-message -p '#S')
+  BENCH_WINDOW="forge-${BENCH_LABEL}"
+  CHANNEL_ORIG="fb-${TIMESTAMP}-orig"
+  CHANNEL_RIG="fb-${TIMESTAMP}-rig"
+fi
 
-# --- Wait for both ---
-echo "[$(date +%H:%M:%S)] Both runs in progress. Waiting..."
+# --- Cleanup trap ---
+cleanup() {
+  if [[ "$USE_TMUX" == "true" ]]; then
+    tmux wait-for -S "${CHANNEL_ORIG}" 2>/dev/null || true
+    tmux wait-for -S "${CHANNEL_RIG}" 2>/dev/null || true
+    tmux kill-window -t "${TMUX_SESSION}:${BENCH_WINDOW}" 2>/dev/null || true
+  fi
+}
+trap cleanup INT TERM
+
+if [[ "$USE_TMUX" == "true" ]]; then
+  # =============================================
+  # TMUX MODE: visible side-by-side panes
+  # =============================================
+
+  # --- Write forge prompts and autonomous prompt to files ---
+  # Avoids shell quoting issues when embedding in wrapper scripts.
+  echo "$FORGE_PROMPT_ORIGINAL" > "${BENCH_DIR}/original/.forge_prompt"
+  echo "$FORGE_PROMPT_RIG" > "${BENCH_DIR}/rig/.forge_prompt"
+  echo "$AUTONOMOUS_PROMPT" > "${BENCH_DIR}/original/.autonomous_prompt"
+  cp "${BENCH_DIR}/original/.autonomous_prompt" "${BENCH_DIR}/rig/.autonomous_prompt"
+
+  # --- Generate per-run wrapper scripts ---
+  for VARIANT in original rig; do
+    if [[ "$VARIANT" == "original" ]]; then
+      CHANNEL="$CHANNEL_ORIG"
+      LABEL_UPPER="ORIGINAL"
+    else
+      CHANNEL="$CHANNEL_RIG"
+      LABEL_UPPER="RIG"
+    fi
+
+    cat > "${BENCH_DIR}/${VARIANT}/run.sh" << WRAPPER_EOF
+#!/usr/bin/env bash
+set -uo pipefail
+
+VARIANT="${VARIANT}"
+LABEL_UPPER="${LABEL_UPPER}"
+BENCH_DIR="${ABS_BENCH_DIR}"
+CHANNEL="${CHANNEL}"
+MODEL="${MODEL}"
+BUDGET="${BUDGET}"
+
+cd "\${BENCH_DIR}/\${VARIANT}"
+
+FORGE_PROMPT=\$(cat .forge_prompt)
+AUTONOMOUS_PROMPT=\$(cat .autonomous_prompt)
+
+echo ""
+echo "╔══════════════════════════════════════════╗"
+echo "║  Forge Bench: \${LABEL_UPPER}"
+echo "║  Started: \$(date)"
+echo "╚══════════════════════════════════════════╝"
 echo ""
 
-wait $PID_ORIGINAL
-EXIT_ORIGINAL=$?
+# Run claude with stream-json, tee to file, display filtered output
+EXIT_CODE=0
+claude --print \\
+  --output-format stream-json \\
+  --verbose \\
+  --model "\${MODEL}" \\
+  --max-budget-usd "\${BUDGET}" \\
+  --dangerously-skip-permissions \\
+  --append-system-prompt "\${AUTONOMOUS_PROMPT}" \\
+  "\${FORGE_PROMPT}" \\
+  2> stderr.log \\
+  | tee stream.jsonl \\
+  | python3 -u -c '
+import sys, json
 
-wait $PID_RIG
-EXIT_RIG=$?
+for line in sys.stdin:
+    line = line.strip()
+    if not line:
+        continue
+    try:
+        evt = json.loads(line)
+        t = evt.get("type", "")
+        sub = evt.get("subtype", "")
+
+        if t == "assistant":
+            for block in evt.get("message", {}).get("content", []):
+                bt = block.get("type", "")
+                if bt == "text":
+                    text = block.get("text", "")
+                    for chunk in [text[i:i+300] for i in range(0, len(text), 300)]:
+                        print(chunk)
+                elif bt == "tool_use":
+                    name = block.get("name", "?")
+                    print(f"\033[36m[TOOL] {name}\033[0m")
+
+        elif t == "result":
+            cost = evt.get("total_cost_usd", 0)
+            turns = evt.get("num_turns", "?")
+            dur = evt.get("duration_ms", 0) // 1000
+            stop = evt.get("stop_reason", "")
+            print(f"\n\033[32m{chr(61)*40}\033[0m")
+            print(f"\033[32mDONE  Cost: \${cost:.2f}  Turns: {turns}  Duration: {dur}s  Stop: {stop}\033[0m")
+            print(f"\033[32m{chr(61)*40}\033[0m")
+
+        elif t == "system" and sub == "init":
+            sid = evt.get("session_id", "?")
+            print(f"\033[90m[session {sid[:8]}...]\033[0m")
+
+    except Exception:
+        pass
+    sys.stdout.flush()
+' || EXIT_CODE=\$?
+
+# Extract the result event from stream.jsonl -> session.json
+python3 -c "
+import json
+last_result = None
+for line in open('stream.jsonl'):
+    line = line.strip()
+    if not line: continue
+    try:
+        evt = json.loads(line)
+        if evt.get('type') == 'result':
+            last_result = evt
+    except: pass
+if last_result:
+    json.dump(last_result, open('session.json', 'w'))
+else:
+    import sys
+    print('WARNING: No result event found in stream', file=sys.stderr)
+" 2>/dev/null
+
+# Write exit code for parent
+echo "\${EXIT_CODE}" > .exit_code
 
 echo ""
-echo "[$(date +%H:%M:%S)] Both runs complete."
-echo "  Original exit: ${EXIT_ORIGINAL}"
-echo "  Rig exit:      ${EXIT_RIG}"
+echo "=== \${LABEL_UPPER} finished (exit \${EXIT_CODE}) ==="
+echo "Waiting for bench to complete..."
+
+# Signal the parent
+tmux wait-for -S "\${CHANNEL}"
+
+# Keep pane alive so user can read final output (parent kills window on cleanup)
+sleep 86400 || true
+WRAPPER_EOF
+
+    chmod +x "${BENCH_DIR}/${VARIANT}/run.sh"
+  done
+
+  # --- Create tmux window with two panes ---
+  echo "[$(date +%H:%M:%S)] Launching tmux panes..."
+
+  tmux new-window -n "${BENCH_WINDOW}" -d \
+    "bash '${ABS_BENCH_DIR}/original/run.sh'"
+
+  tmux split-window -h -t "${TMUX_SESSION}:${BENCH_WINDOW}" \
+    "bash '${ABS_BENCH_DIR}/rig/run.sh'"
+
+  # Label panes with titles
+  tmux select-pane -t "${TMUX_SESSION}:${BENCH_WINDOW}.0" -T "ORIGINAL (code-forge)"
+  tmux select-pane -t "${TMUX_SESSION}:${BENCH_WINDOW}.1" -T "RIG (code-forge-rig)"
+  tmux set-option -t "${TMUX_SESSION}:${BENCH_WINDOW}" pane-border-format " #{pane_title} " 2>/dev/null || true
+  tmux set-option -t "${TMUX_SESSION}:${BENCH_WINDOW}" pane-border-status top 2>/dev/null || true
+
+  echo "[$(date +%H:%M:%S)] Both runs in progress in tmux window '${BENCH_WINDOW}'"
+  echo "  Switch to it:  tmux select-window -t '${BENCH_WINDOW}'"
+  echo ""
+  echo "[$(date +%H:%M:%S)] Waiting for both runs to complete..."
+  echo ""
+
+  # --- Wait for both via tmux channels ---
+  tmux wait-for "${CHANNEL_ORIG}"
+  EXIT_ORIGINAL=$(cat "${BENCH_DIR}/original/.exit_code" 2>/dev/null || echo "1")
+  echo "[$(date +%H:%M:%S)] ORIGINAL run finished (exit ${EXIT_ORIGINAL})"
+
+  tmux wait-for "${CHANNEL_RIG}"
+  EXIT_RIG=$(cat "${BENCH_DIR}/rig/.exit_code" 2>/dev/null || echo "1")
+  echo "[$(date +%H:%M:%S)] RIG run finished (exit ${EXIT_RIG})"
+
+  echo ""
+  echo "[$(date +%H:%M:%S)] Both runs complete."
+  echo "  Original exit: ${EXIT_ORIGINAL}"
+  echo "  Rig exit:      ${EXIT_RIG}"
+
+  # Kill the benchmark window and clean up ephemeral files
+  tmux kill-window -t "${TMUX_SESSION}:${BENCH_WINDOW}" 2>/dev/null || true
+  rm -f "${BENCH_DIR}/original/run.sh" "${BENCH_DIR}/rig/run.sh"
+  rm -f "${BENCH_DIR}/original/.forge_prompt" "${BENCH_DIR}/rig/.forge_prompt"
+  rm -f "${BENCH_DIR}/original/.autonomous_prompt" "${BENCH_DIR}/rig/.autonomous_prompt"
+
+else
+  # =============================================
+  # FALLBACK MODE: hidden background subshells
+  # =============================================
+  if command -v tmux &>/dev/null; then
+    echo "(Not inside tmux — falling back to background mode. Run inside tmux for visible panes.)"
+  else
+    echo "(tmux not found — running in background mode.)"
+  fi
+  echo ""
+
+  CLAUDE_FLAGS=(
+    --print
+    --output-format json
+    --model "${MODEL}"
+    --max-budget-usd "${BUDGET}"
+    --dangerously-skip-permissions
+    --append-system-prompt "${AUTONOMOUS_PROMPT}"
+  )
+
+  echo "[$(date +%H:%M:%S)] Starting ORIGINAL run (code-forge)..."
+  (
+    cd "${BENCH_DIR}/original"
+    claude "${CLAUDE_FLAGS[@]}" \
+      "${FORGE_PROMPT_ORIGINAL}" \
+      > session.json 2> stderr.log || true
+    echo "[$(date +%H:%M:%S)] ORIGINAL run finished."
+  ) &
+  PID_ORIGINAL=$!
+
+  echo "[$(date +%H:%M:%S)] Starting RIG run (code-forge-rig)..."
+  (
+    cd "${BENCH_DIR}/rig"
+    claude "${CLAUDE_FLAGS[@]}" \
+      "${FORGE_PROMPT_RIG}" \
+      > session.json 2> stderr.log || true
+    echo "[$(date +%H:%M:%S)] RIG run finished."
+  ) &
+  PID_RIG=$!
+
+  echo "[$(date +%H:%M:%S)] Both runs in progress. Waiting..."
+  echo ""
+
+  wait $PID_ORIGINAL
+  EXIT_ORIGINAL=$?
+
+  wait $PID_RIG
+  EXIT_RIG=$?
+
+  echo ""
+  echo "[$(date +%H:%M:%S)] Both runs complete."
+  echo "  Original exit: ${EXIT_ORIGINAL}"
+  echo "  Rig exit:      ${EXIT_RIG}"
+fi
 
 # --- Run audits ---
 echo ""
@@ -157,27 +374,46 @@ STATS_ORIGINAL=$(extract_stats "${BENCH_DIR}/original/session.json")
 STATS_RIG=$(extract_stats "${BENCH_DIR}/rig/session.json")
 
 # --- Compose results ---
+# Write JSON inputs as temp files to avoid shell interpolation issues
+# with large JSON payloads containing special characters.
+echo "${STATS_ORIGINAL}" > "${BENCH_DIR}/_stats_original.json"
+echo "${STATS_RIG}" > "${BENCH_DIR}/_stats_rig.json"
+echo "${AUDIT_ORIGINAL}" > "${BENCH_DIR}/_audit_original.json"
+echo "${AUDIT_RIG}" > "${BENCH_DIR}/_audit_rig.json"
+
 python3 -c "
 import json, sys
 
-meta = json.load(open('${BENCH_DIR}/meta.json'))
+bench_dir = '${BENCH_DIR}'
+meta = json.load(open(f'{bench_dir}/meta.json'))
+
+def load_json_file(path):
+    try:
+        return json.load(open(path))
+    except:
+        return None
+
 results = {
     'meta': meta,
     'finished_at': '$(date -u +%Y-%m-%dT%H:%M:%SZ)',
     'original': {
-        'session': ${STATS_ORIGINAL},
-        'audit': ${AUDIT_ORIGINAL},
+        'session': load_json_file(f'{bench_dir}/_stats_original.json'),
+        'audit': load_json_file(f'{bench_dir}/_audit_original.json'),
         'exit_code': ${EXIT_ORIGINAL},
     },
     'rig': {
-        'session': ${STATS_RIG},
-        'audit': ${AUDIT_RIG},
+        'session': load_json_file(f'{bench_dir}/_stats_rig.json'),
+        'audit': load_json_file(f'{bench_dir}/_audit_rig.json'),
         'exit_code': ${EXIT_RIG},
     },
 }
-json.dump(results, open('${BENCH_DIR}/results.json', 'w'), indent=2)
-print(json.dumps(results, indent=2))
-" > /dev/null 2>&1
+json.dump(results, open(f'{bench_dir}/results.json', 'w'), indent=2)
+print('results.json written')
+"
+
+# Clean up temp files
+rm -f "${BENCH_DIR}/_stats_original.json" "${BENCH_DIR}/_stats_rig.json" \
+      "${BENCH_DIR}/_audit_original.json" "${BENCH_DIR}/_audit_rig.json"
 
 echo ""
 echo "=== Results saved to ${BENCH_DIR}/results.json ==="

@@ -19,6 +19,18 @@
       "category": "development"
     },
     {
+      "name": "code-forge-rig",
+      "description": "Code Forge with enforcement hooks for protocol drift prevention",
+      "source": "./code-forge-rig",
+      "category": "development"
+    },
+    {
+      "name": "forge-bench",
+      "description": "Benchmarking framework for comparing Code Forge variants",
+      "source": "./forge-bench",
+      "category": "development"
+    },
+    {
       "name": "sui-wallet",
       "description": "Mock Sui wallet for browser-based dApp testing",
       "source": "./sui-wallet",
