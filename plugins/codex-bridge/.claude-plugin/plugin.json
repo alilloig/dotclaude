@@ -11,7 +11,7 @@
   "mcpServers": {
     "codex": {
       "command": "codex",
-      "args": ["-a", "never", "mcp-server"]
+      "args": ["--dangerously-bypass-approvals-and-sandbox", "mcp-server"]
     }
   }
 }
