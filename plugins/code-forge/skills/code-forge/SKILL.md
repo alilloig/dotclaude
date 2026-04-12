@@ -50,7 +50,7 @@ Extract from the arguments:
 ### Create Artifact Directory
 
 ```
-mkdir -p .forge/cycles
+mkdir -p .forge/cycles .forge/digests
 ```
 
 ### Check Prerequisites
@@ -124,313 +124,84 @@ Update `status.md` phase to `"exploration"`.
 
 ---
 
-## PHASE 0.5: CODEBASE EXPLORATION (conditional)
+## PHASES 0.5-1.5: PREPARATION (via Preparation Orchestrator)
 
-**Skip this phase if**: the target directory has no meaningful code (no package.json, Cargo.toml, Move.toml, pyproject.toml, go.mod, or src/ directory).
+**Goal**: Explore the codebase, refine the planning prompt with Codex, and detect agent roles — all in an isolated context.
 
-**If existing code detected**:
+The preparation orchestrator handles codebase exploration (Phase 0.5), prompt refinement (Phase 1), and agent role detection (Phase 1.5). This keeps the exploration reports (~25KB) and prompt evolution (~10-15KB) out of the coordinator's context.
 
-1. Dispatch 2-3 `forge-codebase-explorer` agents in parallel, each with a different focus:
-   - Agent 1: **Architecture** — "Map the architecture, modules, entry points, data flow, and core abstractions"
-   - Agent 2: **Patterns** — "Extract coding patterns, naming conventions, test organization, error handling"
-   - Agent 3: **Tech Stack** — "Catalog dependencies, frameworks, SDKs, build system, deployment setup"
+### Dispatch Preparation Orchestrator
 
-2. Read the key files identified by each explorer (top 5-10 from each)
-
-3. Compile their reports into `.forge/codebase-analysis.md`:
-```markdown
----
-type: codebase-analysis
-created: [ISO timestamp]
----
-
-## Architecture
-[compiled from Agent 1]
-
-## Patterns & Conventions
-[compiled from Agent 2]
-
-## Tech Stack
-[compiled from Agent 3]
-
-## Key Files for This Work
-[merged top-10 list, deduplicated]
-
-## Constraints & Warnings
-[anything that affects the planned work]
 ```
-
-Update `status.md` phase to `"prompt-refinement"`.
-
----
-
-## PHASE 1: ITERATIVE PROMPT REFINEMENT
-
-**Goal**: Claude and Codex iteratively improve the planning prompt until convergence.
-
-### Round 1 — Claude's v1
-
-Write the best possible planning prompt based on:
-- The enriched intent (`.forge/intent.md`)
-- The codebase analysis (`.forge/codebase-analysis.md`, if exists)
-- Your knowledge of what makes a good project specification
-
-The planning prompt should instruct a planner agent to generate a comprehensive spec. It should encode the user's goals, constraints, quality bar, and scope — everything the planner needs to produce a strong spec without further user input.
-
-### Round 2 — Codex Critique + v2 (Gate G1a)
-
-Send v1 to Codex:
-```
-Call mcp__codex__codex with:
+Agent(forge-preparation-orchestrator):
+  description: "Explore codebase, refine planning prompt, detect agent roles"
   prompt: |
-    You are reviewing a planning prompt that will be used to generate a project specification.
-    
-    ## Planning Prompt v1
-    [paste v1 here]
-    
-    ## Original User Intent
-    [paste intent summary]
-    
-    ## Your Task
-    1. Critique this planning prompt. What's missing, vague, weak, or could lead to a mediocre spec?
-    2. Generate an improved version (v2) that addresses your critique.
-    3. Be specific about what you changed and why.
-  sandbox: "read-only"
-  cwd: [current working directory]
+    Run the preparation pipeline: codebase exploration, prompt refinement, and agent role detection.
+
+    ## Intent Summary
+    [brief summary of the intent — 3-5 sentences from .forge/intent.md]
+
+    ## Configuration
+    - Intent path: .forge/intent.md
+    - Mode: [greenfield | existing]
+    - Agent override: [roles or "none"]
+    - Light mode: [true/false]
+    - Codex available: [true/false]
+    - Working directory: [current working directory]
+
+    Read all input files from disk. Write codebase analysis, planning prompt, agent config, and preparation digest.
 ```
 
-Store the returned `threadId` in `status.md` under `codex_thread_ids.prompt_refinement`.
+### Read Preparation Digest
 
-### Round 3 — Claude's v3
+After the preparation orchestrator returns, read `.forge/digests/preparation-digest.md`.
 
-Review Codex's v2 and critique:
-- What did Codex improve that's genuinely better?
-- What did Codex change that loses something important from v1?
-- What new ideas does v2 introduce?
+**Do NOT read `.forge/codebase-analysis.md`, `.forge/prompt-evolution.md`, or `.forge/planning-prompt.md` directly.** The preparation digest contains everything the coordinator needs.
 
-Generate v3 by taking the strongest elements from both v1 and v2.
-
-### Round 4 — Codex Convergence Check (Gate G1b)
-
-Send v3 to Codex via `mcp__codex__codex-reply`:
-```
-  prompt: |
-    Here is planning prompt v3 (Claude's synthesis of v1 and your v2):
-    
-    [paste v3]
-    
-    Is this converged? Critique any remaining weaknesses. If you'd change
-    something, be specific. If it's good enough, say "CONVERGED" and explain why.
-  threadId: [from G1a]
-```
-
-### Round 5 (Optional, Gate G1c — skip if LIGHT_MODE)
-
-Only if Codex's response does NOT contain "CONVERGED" and the delta is significant:
-- Incorporate final feedback
-- One more codex-reply round for confirmation
-
-### Log Evolution
-
-Write `.forge/prompt-evolution.md` with all versions and critiques:
-```markdown
-## v1 (Claude)
-[full text]
-
-## Codex Critique of v1
-[full text]
-
-## v2 (Codex)
-[full text]
-
-## Claude's Synthesis Notes
-[what was kept, changed, why]
-
-## v3 (Claude — Final)
-[full text]
-
-## Codex Convergence Assessment
-[full text]
-```
-
-Write the final prompt to `.forge/planning-prompt.md`.
+If the digest is missing: check if `.forge/planning-prompt.md` exists (preparation completed but digest wasn't written). If so, compose the digest manually from existing artifacts.
 
 Update `status.md` phase to `"specification"`.
 
 ---
 
-## PHASE 1.5: AGENT ROLE DETECTION
+## PHASES 2-4: PLANNING (via Planning Orchestrator)
 
-**Goal**: Determine which domain-specific agent roles to inject into implementer/evaluator prompts.
+**Goal**: Generate spec, critique it with Codex, and break it into ordered cycles — all in an isolated context.
 
-### Detection Sources
+The planning orchestrator handles Phases 2 (specification), 3 (spec critique), and 4 (cycle planning) in a single agent session. This keeps the 33-76KB spec and Codex negotiation out of the coordinator's context.
 
-1. **Intent** (`.forge/intent.md`): tech stack preferences, framework mentions
-2. **Codebase analysis** (`.forge/codebase-analysis.md`): detected languages, frameworks
+### Dispatch Planning Orchestrator
 
-### Detection Rules
-
-| Signal | Role | Prompt Source |
-|--------|------|--------------|
-| `.move` files, `Move.toml`, "Sui"/"Move" in intent | `move-agent` | `~/workspace/claudefiles/_meta/AGENTS.md` |
-| `next.config.*`, React deps, "Next.js"/"React" in intent | `frontend-agent` | `~/workspace/claudefiles/_meta/AGENTS.md` |
-| No match | Generic (no injection) | N/A |
-
-### If AGENT_OVERRIDE is set
-
-Use the specified roles instead of auto-detection. Read their prompts from `~/workspace/claudefiles/_meta/AGENTS.md`.
-
-### Write Config
-
-Write `.forge/agent-config.md`:
-```markdown
----
-detected_roles: [list]
-override: [true/false]
----
-
-## Detected Roles
-- [role name]: [detection reasoning]
-
-## Domain Injection Content
-[The system prompt text that will replace {{DOMAIN_INJECTION}} in agent prompts]
 ```
-
----
-
-## PHASE 2: SPECIFICATION
-
-**Goal**: Generate a high-level project spec.
-
-Dispatch the `forge-planner` agent:
-```
-Agent(forge-planner):
+Agent(forge-planning-orchestrator):
+  description: "Generate spec, critique, and cycle plan"
   prompt: |
-    Generate a project specification based on the following inputs.
-    
-    ## Planning Prompt
-    [content of .forge/planning-prompt.md]
-    
-    ## Enriched Intent
-    [content of .forge/intent.md]
-    
-    ## Codebase Analysis (if exists)
-    [content of .forge/codebase-analysis.md, or "Greenfield — no existing codebase"]
-    
-    Write the spec to .forge/spec.md
+    Run the planning pipeline: spec generation, Codex critique, and cycle planning.
+
+    ## Preparation Summary
+    [content of .forge/digests/preparation-digest.md, OR if it doesn't exist,
+     a brief summary of the intent and codebase findings]
+
+    ## Configuration
+    - Intent path: .forge/intent.md
+    - Planning prompt path: .forge/planning-prompt.md
+    - Codebase analysis path: .forge/codebase-analysis.md (may not exist if greenfield)
+    - Light mode: [true/false]
+    - Codex available: [true/false]
+    - Working directory: [current working directory]
+
+    Read all input files from disk. Write spec, critique, cycle plan, and planning digest.
 ```
 
-After the planner returns, read `.forge/spec.md` and present a brief summary to the user. Do not ask for approval — this is informational only. Continue to the next phase.
+### Read Planning Digest
 
-Update `status.md` phase to `"spec-critique"`.
+After the planning orchestrator returns, read `.forge/digests/planning-digest.md`.
 
----
+**Do NOT read `.forge/spec.md`, `.forge/spec-critique.md`, or `.forge/cycle-plan.md` directly.** The planning digest contains everything the coordinator needs to dispatch cycle orchestrators.
 
-## PHASE 3: SPEC CRITIQUE + NEGOTIATION
+Extract `total_cycles` from the digest frontmatter.
 
-**Goal**: Codex reviews the spec and Claude negotiates improvements.
-
-### Codex Review (Gate G2)
-
-```
-Call mcp__codex__codex with:
-  prompt: |
-    Review this project specification for a senior architect audience.
-    
-    ## Specification
-    [full content of .forge/spec.md]
-    
-    ## Original User Intent
-    [summary from intent.md]
-    
-    ## Your Review Focus
-    1. Gaps: What important features or requirements are missing?
-    2. Contradictions: Do any sections conflict with each other?
-    3. Scope: Is the scope realistic for an AI-driven implementation? Too ambitious? Too modest?
-    4. Acceptance criteria: Are they objective and testable?
-    5. Architecture: Are the high-level decisions sound?
-    6. Security: Any obvious security concerns not addressed?
-    
-    Be specific. Reference section names. Prioritize by severity.
-  sandbox: "read-only"
-  cwd: [current working directory]
-```
-
-Store `threadId` in `status.md` under `codex_thread_ids.spec_critique`.
-
-### Negotiate
-
-Review Codex's critique:
-- For each valid point: incorporate it into the spec
-- For each invalid/over-scoped point: note why you disagree
-
-If significant changes were made, do one more `codex-reply` round:
-```
-  prompt: |
-    I've updated the spec based on your critique. Here are the changes:
-    [list changes and rationale for any points you didn't accept]
-    
-    Updated spec:
-    [full updated spec]
-    
-    Any remaining concerns?
-  threadId: [from G2]
-```
-
-### Write Artifacts
-
-- Update `.forge/spec.md` with improvements
-- Write `.forge/spec-critique.md` with the full negotiation log
-
-Update `status.md` phase to `"cycle-planning"`.
-
----
-
-## PHASE 4: CYCLE PLANNING
-
-**Goal**: Break the spec into ordered development cycles.
-
-### Create Cycle Plan
-
-Analyze the spec and break it into 3-7 ordered cycles. Each cycle should:
-- Be independently testable
-- Build on previous cycles
-- Have clear boundaries (not "finish the rest")
-- Include estimated complexity (simple / moderate / complex)
-
-```markdown
-# Cycle Plan
-
-## Cycle 1: [Name]
-- **Scope**: [what gets built]
-- **Dependencies**: None (foundation cycle)
-- **Complexity**: [simple/moderate/complex]
-- **Deliverables**: [observable outcomes]
-- **Suggested model**: [opus/sonnet — sonnet for simple, opus for complex]
-
-## Cycle 2: [Name]
-- **Scope**: [what gets built]
-- **Dependencies**: Cycle 1
-- ...
-```
-
-### Codex Review (Gate G3 — skip if LIGHT_MODE)
-
-```
-Call mcp__codex__codex-reply with:
-  prompt: |
-    Review this development cycle plan:
-    
-    [cycle plan]
-    
-    Are the cycle boundaries reasonable? Are dependencies correct?
-    Is anything missing? Would you reorder anything?
-  threadId: [from spec_critique]
-```
-
-Incorporate valid feedback.
-
-Write `.forge/cycle-plan.md`.
+If the digest is missing: check if `.forge/cycle-plan.md` exists (planning orchestrator completed but didn't write the digest). If so, read the cycle plan and compose the digest manually.
 
 Update `status.md`: phase=`"cycle"`, total_cycles=[count], current_cycle=1.
 
@@ -438,262 +209,117 @@ Update `status.md`: phase=`"cycle"`, total_cycles=[count], current_cycle=1.
 
 ## PHASE 5: CYCLE EXECUTION
 
-**Goal**: For each cycle, negotiate a contract, implement, evaluate, and get Codex review.
+**Goal**: For each cycle, dispatch a cycle orchestrator that handles the full contract→implement→evaluate→review pipeline in an isolated context.
+
+Each cycle runs in a separate `forge-cycle-orchestrator` agent session. This prevents cycle artifacts from accumulating in the coordinator's context — the coordinator only reads compact cycle digests (~600 bytes each).
+
+### Git Branch (before first cycle)
+
+Before dispatching the first cycle orchestrator:
+1. Create a feature branch: `git checkout -b forge/[slugified-project-name]`
+2. Record the branch name in `status.md`
+3. If the branch already exists (resume scenario), check it out
 
 ### For each cycle N (1 through total_cycles):
 
-Update `status.md`: current_cycle=N, cycle_status=`"contracting"`.
+Update `status.md`: current_cycle=N, cycle_status=`"dispatching"`.
 
----
+#### Compile Prior Cycle Digests
 
-#### STEP 5a: CONTRACT NEGOTIATION
+Read all `.forge/digests/cycle-*-digest.md` files for cycles 1 through N-1. Concatenate their content into a single `prior_cycles_context` string. If N=1, this is empty.
 
-Draft a completion contract for this cycle. The contract must have ONLY objective, verifiable criteria:
+#### Prepare Cycle Context
 
-```markdown
----
-cycle: N
-name: [cycle name from plan]
----
+Extract the Cycle N entry from `.forge/cycle-plan.md` (scope, dependencies, complexity, deliverables).
 
-## Scope
-[what this cycle delivers, from the cycle plan]
+Compose a brief planning summary:
+- If `.forge/digests/planning-digest.md` exists, use its content
+- Otherwise, write a 5-8 sentence summary of the project vision and feature list from the spec (do NOT paste the full spec — the cycle orchestrator will read relevant sections from disk)
 
-## Completion Criteria
+#### Dispatch Cycle Orchestrator
 
-1. [ ] [Specific, testable criterion — e.g., "Server starts on port 3000 and responds to GET /health with 200"]
-2. [ ] [e.g., "Unit tests exist for all service functions and pass (`npm test` exits 0)"]
-3. [ ] [e.g., "TypeScript compiles with no errors (`npx tsc --noEmit` exits 0)"]
-4. [ ] ...
-
-## Verification Commands
-- `[command]` — verifies criteria [N, M]
-- `[command]` — verifies criteria [X, Y]
-
-## Context from Previous Cycles
-[what was built in prior cycles that this one builds on]
 ```
-
-**Gate G4 (skip if LIGHT_MODE)**: Send contract to Codex for review:
-```
-Call mcp__codex__codex with:
+Agent(forge-cycle-orchestrator):
+  description: "Execute Cycle N: [cycle name]"
   prompt: |
-    Review this cycle completion contract:
-    
-    [contract content]
-    
-    Are the criteria objective and measurable? Are there gaps?
-    Could an implementer satisfy the letter but not the spirit?
-  sandbox: "read-only"
-  cwd: [current working directory]
+    Execute Cycle N: [cycle name]
+
+    ## Cycle Plan Entry
+    [cycle N entry from cycle-plan.md]
+
+    ## Planning Summary
+    [planning summary — brief project context]
+
+    ## Prior Cycles
+    [prior_cycles_context — concatenated digests, or "No prior cycles" if N=1]
+
+    ## Configuration
+    - Cycle number: N
+    - Spec path: .forge/spec.md (read relevant sections as needed — do NOT read the full spec)
+    - Agent config path: .forge/agent-config.md
+    - Light mode: [true/false]
+    - Codex available: [true/false]
+    - Git branch: [branch name from status.md]
+    - Working directory: [current working directory]
+
+    Follow the cycle protocol. Write all artifacts to .forge/cycles/N/.
+    Write your digest to .forge/digests/cycle-N-digest.md when complete.
 ```
 
-Store `threadId` under `codex_thread_ids.cycle_N_contract`.
+#### Read Digest
 
-Incorporate feedback. Write `.forge/cycles/N/contract.md`.
+After the cycle orchestrator returns, read `.forge/digests/cycle-N-digest.md`.
 
-Update `status.md`: cycle_status=`"implementing"`, iteration=1.
+**Do NOT read other cycle artifacts** (contract.md, implementation-notes.md, evaluation.md, codex-review.md). The digest contains everything the coordinator needs.
 
----
-
-#### STEP 5b: IMPLEMENTATION
-
-Read `.forge/agent-config.md` and prepare the domain injection content.
-
-Dispatch `forge-implementer` agent:
-```
-Agent(forge-implementer):
-  description: "Implement Cycle N: [cycle name]"
-  prompt: |
-    [Replace {{DOMAIN_INJECTION}} with content from agent-config.md]
-    
-    You are implementing Cycle N: [cycle name]
-    
-    ## Cycle Scope
-    [from cycle-plan.md]
-    
-    ## Completion Contract
-    [full content of .forge/cycles/N/contract.md]
-    
-    ## Project Spec (relevant excerpt)
-    [relevant section from spec.md]
-    
-    ## Prior Cycles (context)
-    [summary of what previous cycles built — read their implementation-notes.md]
-    
-    ## Evaluator Feedback (if retry, iteration > 1)
-    [full content of evaluation.md findings, if this is a retry]
-    
-    Implement the cycle. Write your report to .forge/cycles/N/implementation-notes.md
-    Commit your work to git with descriptive messages.
-    
-    Work from: [current working directory]
-```
-
-Read the implementer's return. Check for BLOCKED or NEEDS_CONTEXT status — if so, handle:
-- **NEEDS_CONTEXT**: Provide the requested information and re-dispatch
-- **BLOCKED**: Escalate to user via AskUserQuestion
-
-Update `status.md`: cycle_status=`"evaluating"`.
-
----
-
-#### STEP 5c: EVALUATION
-
-Dispatch `forge-evaluator` agent:
-```
-Agent(forge-evaluator):
-  description: "Evaluate Cycle N: [cycle name]"
-  prompt: |
-    [Replace {{DOMAIN_INJECTION}} with content from agent-config.md]
-    
-    Evaluate the implementation of Cycle N: [cycle name]
-    
-    ## Completion Contract
-    [full content of .forge/cycles/N/contract.md]
-    
-    ## Implementer's Report
-    [full content of .forge/cycles/N/implementation-notes.md]
-    
-    IMPORTANT: Do NOT trust the implementer's report. Verify everything independently
-    by reading actual code and running actual commands.
-    
-    Write your evaluation to .forge/cycles/N/evaluation.md
-    
-    Work from: [current working directory]
-```
-
-Read the evaluator's return and check the verdict in `.forge/cycles/N/evaluation.md`.
-
----
-
-#### STEP 5d: ITERATION LOOP
-
-**If PASS**: Proceed to Step 5e (Codex review).
-
-**If FAIL**:
-1. Increment iteration count in `status.md`
-2. If iteration > 5: **STOP** — escalate to user:
-   ```
-   AskUserQuestion: "Cycle N has failed evaluation 5 times. Options:
-   1. Continue with 5 more attempts
-   2. Simplify the cycle scope
-   3. Skip this cycle and continue
-   4. Abort forge"
-   ```
-3. Otherwise: Go back to Step 5b, passing the evaluator's findings as feedback
-
----
-
-#### STEP 5e: CODEX CYCLE REVIEW (Gate G5)
-
-Once the evaluator passes, get an independent Codex review:
-
-```
-Call mcp__codex__codex-reply with:
-  prompt: |
-    Independently review the implementation for Cycle N: [cycle name]
-    
-    ## Completion Contract
-    [contract content]
-    
-    ## Evaluator's Assessment
-    [evaluation.md content]
-    
-    ## Your Task
-    1. Do you agree with the PASS verdict?
-    2. Are there critical issues the evaluator missed?
-    3. Rate the implementation quality (1-5) and explain.
-    4. Any concerns for subsequent cycles?
-    
-    Write a review report.
-  threadId: [from cycle_N_contract]
-```
-
-Write Codex's response to `.forge/cycles/N/codex-review.md`.
-
-**If Codex flags critical issues** (not just suggestions — actual broken functionality or missing requirements):
-- Loop back to Step 5b with Codex's findings as additional evaluator feedback
-- Max 1 extra round for Codex-flagged issues
+Check the digest verdict:
+- **PASS**: Continue to next cycle
+- If the digest is missing or indicates failure: check `.forge/cycles/N/evaluation.md` for details and decide whether to re-dispatch or escalate
 
 Update `status.md`: cycle_status=`"complete"`.
 
----
+#### Proceed to Next Cycle
 
-#### STEP 5f: PROCEED TO NEXT CYCLE
-
-Log cycle completion. Move to cycle N+1. If all cycles complete, proceed to Phase F.
+Move to cycle N+1. If all cycles complete, proceed to Phase F.
 
 **Do NOT pause for user approval between cycles.** Continue autonomously.
 
 ---
 
-## PHASE F: FINAL REVIEW
+## PHASE F: FINAL REVIEW (via Final Review Orchestrator)
 
-**Goal**: Holistic assessment of whether the original spec was met.
+**Goal**: Holistic assessment of whether the original spec was met — in an isolated context that can load all cycle artifacts without burdening the coordinator.
 
-### Claude Assessment
-
-1. Read `.forge/spec.md`
-2. Read all `.forge/cycles/*/codex-review.md` files
-3. Read all `.forge/cycles/*/evaluation.md` files
-4. Check each spec feature against the cycle deliverables
-5. Run any end-to-end verification commands
-
-### Codex Final Verdict (Gate G6)
+### Dispatch Final Review Orchestrator
 
 ```
-Call mcp__codex__codex with:
+Agent(forge-final-review-orchestrator):
+  description: "Final review — assess spec compliance"
   prompt: |
-    Provide a final verdict on this project.
-    
-    ## Original Spec
-    [spec.md content]
-    
-    ## Cycle Review Summary
-    [compiled summary of all cycle reviews and evaluations]
-    
-    ## Your Task
-    1. Does the implementation meet the original specification?
-    2. What features are fully implemented, partially implemented, or missing?
-    3. Overall quality assessment (1-5)
-    4. Recommended next steps or improvements
-    
-    Be thorough and honest. This is the final quality gate.
-  sandbox: "read-only"
-  cwd: [current working directory]
+    Perform the final review of this Code Forge project.
+
+    ## Planning Summary
+    [content of .forge/digests/planning-digest.md]
+
+    ## Cycle Summaries
+    [concatenated content of all .forge/digests/cycle-*-digest.md files]
+
+    ## Configuration
+    - Spec path: .forge/spec.md (read in full — you need every feature for compliance check)
+    - Cycle artifacts: .forge/cycles/*/evaluation.md, .forge/cycles/*/codex-review.md
+    - Codex available: [true/false]
+    - Working directory: [current working directory]
+
+    Read all artifacts from disk. Write final-review.md and final digest.
 ```
 
-### Write Final Review
+### Read Final Digest
 
-Write `.forge/final-review.md`:
-```markdown
----
-verdict: COMPLETE | PARTIAL | INCOMPLETE
-quality: [1-5]
-total_cycles: N
-total_codex_calls: M
----
+After the final review orchestrator returns, read `.forge/digests/final-digest.md`.
 
-## Spec Compliance
-[feature-by-feature checklist]
-
-## Claude Assessment
-[your holistic assessment]
-
-## Codex Assessment
-[Codex's final verdict]
-
-## Gaps (if any)
-[what's missing and which cycles would need rework]
-
-## Recommended Next Steps
-[improvements, optimizations, features deferred]
-```
-
-**If INCOMPLETE with critical gaps**: Identify which cycles need rework and loop back to Phase 5 for those specific cycles.
-
-**If COMPLETE or PARTIAL with acceptable gaps**: Present the final review to the user.
+Check the verdict:
+- **COMPLETE or PARTIAL with acceptable gaps**: Present the final digest summary to the user.
+- **INCOMPLETE with critical gaps**: Read `.forge/final-review.md` for the gaps section. Identify which cycles need rework and loop back to Phase 5 for those specific cycles.
 
 Update `status.md`: phase=`"done"`.
 
@@ -719,17 +345,16 @@ If any agent reports BLOCKED:
 
 When `.forge/status.md` exists on initialization:
 1. Read the current phase and cycle status
-2. Read all existing artifacts to rebuild context
-3. Resume from the exact point indicated by status.md
+2. **If resuming during Phase 5 (cycle execution)**:
+   - Read `.forge/digests/planning-digest.md` (NOT the full spec — cycle orchestrators read spec from disk)
+   - Read all existing `.forge/digests/cycle-*-digest.md` files to determine which cycles completed
+   - Check `cycle_status`:
+     - `"complete"`: Cycle finished. Increment to next cycle and dispatch.
+     - `"dispatching"`: Coordinator crashed while cycle-orchestrator was running. Check for digest: if it exists, cycle completed (just read it). If no digest but `evaluation.md` exists with PASS, cycle completed but digest wasn't written — write the digest from the evaluation. Otherwise, re-dispatch the cycle-orchestrator.
+   - Resume dispatching from the next incomplete cycle
+3. **If resuming during Phases 2-4 (planning)**: Check if `.forge/digests/planning-digest.md` exists. If so, planning completed — skip to Phase 5. If not, check which planning artifacts exist (spec.md, spec-critique.md, cycle-plan.md) and re-dispatch the planning orchestrator with resume hints.
+4. **If resuming during other phases (0, 0.5, 1, 1.5)**: Read all existing artifacts for that phase to rebuild context
 4. Announce to the user: "Resuming forge from [phase/cycle description]"
-
-### Git Branch
-
-Before the first implementation cycle (Step 5b, cycle 1):
-1. Create a feature branch: `git checkout -b forge/[slugified-project-name]`
-2. Record the branch name in `status.md`
-3. All implementation commits go to this branch
-4. If the branch already exists (resume scenario), check it out
 
 ---
 

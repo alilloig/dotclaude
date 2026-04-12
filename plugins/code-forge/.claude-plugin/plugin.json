@@ -12,6 +12,10 @@
     "./agents/planner.md",
     "./agents/implementer.md",
     "./agents/evaluator.md",
-    "./agents/codebase-explorer.md"
+    "./agents/codebase-explorer.md",
+    "./agents/cycle-orchestrator.md",
+    "./agents/planning-orchestrator.md",
+    "./agents/preparation-orchestrator.md",
+    "./agents/final-review-orchestrator.md"
   ]
 }
