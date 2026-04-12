@@ -1,69 +1,17 @@
 {
-  "statusLine": {
-    "type": "command",
-    "command": "bash /Users/alilloig/.claude/statusline-command.sh"
-  },
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
     "CLAUDE_CODE_COORDINATOR_MODE": "1",
     "CLAUDE_CODE_NO_FLICKER": "1"
   },
   "permissions": {
-    "allow": [
-      "Bash(claude team:*)",
-      "Bash(claude:*)"
-    ],
+    "allow": ["Bash(claude team:*)", "Bash(claude:*)"],
     "defaultMode": "default"
   },
-  "model": "claude-opus-4-5-20250918[1m]",
-  "hooks": {
-    "SessionStart": [
-      {
-        "matcher": "startup|resume|clear|compact",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node /Users/alilloig/.claude/plugins/coworking-monitor/hooks/notify.mjs session-start",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
-    "SubagentStart": [
-      {
-        "matcher": ".+",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node /Users/alilloig/.claude/plugins/coworking-monitor/hooks/notify.mjs subagent-start",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
-    "SubagentStop": [
-      {
-        "matcher": ".+",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node /Users/alilloig/.claude/plugins/coworking-monitor/hooks/notify.mjs subagent-stop",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
-    "SessionEnd": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node /Users/alilloig/.claude/plugins/coworking-monitor/hooks/notify.mjs session-end",
-            "timeout": 5
-          }
-        ]
-      }
-    ]
+  "model": "claude-opus-4-5",
+  "statusLine": {
+    "type": "command",
+    "command": "bash /Users/alilloig/.claude/statusline-command.sh"
   },
   "enabledPlugins": {
     "claude-code-setup@claude-plugins-official": true,
@@ -81,7 +29,6 @@
     "plugin-dev@claude-plugins-official": true,
     "pr-review-toolkit@claude-plugins-official": true,
     "pyright-lsp@claude-plugins-official": true,
-    "ralph-loop@claude-plugins-official": true,
     "rust-analyzer-lsp@claude-plugins-official": true,
     "security-guidance@claude-plugins-official": true,
     "slack@claude-plugins-official": true,
@@ -93,7 +40,6 @@
     "remember@claude-plugins-official": true,
     "hookify@claude-plugins-official": true,
     "gopls-lsp@claude-plugins-official": true,
-    "legalzoom@claude-plugins-official": false,
     "mcp-server-dev@claude-plugins-official": true,
     "notion@claude-plugins-official": false,
     "chrome-devtools-mcp@claude-plugins-official": true,
