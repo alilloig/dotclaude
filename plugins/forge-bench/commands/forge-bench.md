@@ -28,4 +28,4 @@ Run a head-to-head comparison of code-forge (original) vs code-forge-rig (with e
 
 4. After the script completes, read `results.json` and present the comparison using the `/forge-compare` format.
 
-**Warning:** This launches two autonomous Claude Code sessions with `--dangerously-skip-permissions`. Each will spend up to the budget cap. Total maximum cost = 2x budget.
+**Warning:** This launches two autonomous Claude Code sessions. Each will spend up to the budget cap. Total maximum cost = 2x budget.
