@@ -97,7 +97,7 @@ All artifacts are written to `.forge/` in the project root:
 | Agent | Model | Color | Role |
 |-------|-------|-------|------|
 | `forge-planner` | opus | green | Generates high-level specs from refined prompts |
-| `forge-implementer` | opus/sonnet | blue | Implements code per cycle, handles retry with feedback |
+| `forge-implementer` | sonnet | blue | Implements code per cycle, handles retry with feedback |
 | `forge-evaluator` | opus | red | Skeptical contract-based review, runs actual verification |
 | `forge-codebase-explorer` | sonnet | cyan | Fast parallel codebase mapping for existing repos |
 

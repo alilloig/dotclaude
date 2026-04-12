@@ -3,7 +3,7 @@ set -euo pipefail
 
 # forge-bench — Run the same prompt through two forge plugin variants in parallel
 #
-# Usage: forge-bench.sh "<prompt>" [--budget <usd>] [--model <model>] [--label <name>]
+# Usage: forge-bench.sh "<prompt>" [--model <model>] [--label <name>]
 #
 # Creates a timestamped benchmark directory under .forge-bench/ with:
 #   original/  — run with code-forge plugin
@@ -16,7 +16,6 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # --- Defaults ---
-BUDGET="50"
 MODEL="opus"
 LABEL=""
 
@@ -24,7 +23,6 @@ LABEL=""
 PROMPT=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --budget) BUDGET="$2"; shift 2 ;;
     --model) MODEL="$2"; shift 2 ;;
     --label) LABEL="$2"; shift 2 ;;
     *) PROMPT="$1"; shift ;;
@@ -32,7 +30,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -z "$PROMPT" ]]; then
-  echo "Usage: forge-bench.sh \"<prompt>\" [--budget <usd>] [--model <model>] [--label <name>]"
+  echo "Usage: forge-bench.sh \"<prompt>\" [--model <model>] [--label <name>]"
   exit 1
 fi
 
@@ -67,7 +65,6 @@ echo "$PROMPT" > "${BENCH_DIR}/prompt.txt"
 cat > "${BENCH_DIR}/meta.json" << METAEOF
 {
   "prompt": $(echo "$PROMPT" | python3 -c "import sys,json; print(json.dumps(sys.stdin.read().strip()))"),
-  "budget_usd": ${BUDGET},
   "model": "${MODEL}",
   "label": "${BENCH_LABEL}",
   "started_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
@@ -80,7 +77,6 @@ METAEOF
 
 echo "=== Forge Bench ==="
 echo "Prompt: ${PROMPT}"
-echo "Budget: \$${BUDGET} per run"
 echo "Model:  ${MODEL}"
 echo "Projects: ${DIR_ORIGINAL}/ and ${DIR_RIG}/"
 echo "Metadata: ${BENCH_DIR}/"
@@ -164,7 +160,6 @@ LABEL_UPPER="${LABEL_UPPER}"
 RUN_DIR="${ABS_RUN_DIR}"
 CHANNEL="${CHANNEL}"
 MODEL="${MODEL}"
-BUDGET="${BUDGET}"
 
 cd "\${RUN_DIR}"
 
@@ -184,7 +179,6 @@ START_TS=\$(date +%s)
 claude \\
   --permission-mode bypassPermissions \\
   --model "\${MODEL}" \\
-  --max-budget-usd "\${BUDGET}" \\
   "\${FORGE_PROMPT}" || EXIT_CODE=\$?
 
 END_TS=\$(date +%s)
@@ -195,7 +189,6 @@ python3 -c "
 import json
 json.dump({
     'duration_ms': \${DURATION_MS},
-    'total_cost_usd': 0,
     'num_turns': 0,
     'stop_reason': 'end_turn',
     'usage': {}
@@ -282,7 +275,6 @@ else
     --print
     --output-format json
     --model "${MODEL}"
-    --max-budget-usd "${BUDGET}"
     --dangerously-skip-permissions
     --append-system-prompt "${AUTONOMOUS_PROMPT}"
   )
@@ -346,7 +338,6 @@ import json, sys
 try:
     d = json.load(open('$session_file'))
     print(json.dumps({
-        'cost_usd': d.get('total_cost_usd', 0),
         'duration_ms': d.get('duration_ms', 0),
         'num_turns': d.get('num_turns', 0),
         'stop_reason': d.get('stop_reason', ''),
@@ -362,6 +353,63 @@ except: print('null')
 STATS_ORIGINAL=$(extract_stats "${DIR_ORIGINAL}/session.json")
 STATS_RIG=$(extract_stats "${DIR_RIG}/session.json")
 
+# --- Collect code statistics ---
+extract_code_stats() {
+  local project_dir="$1"
+  if [[ -d "$project_dir" ]]; then
+    python3 -c "
+import os, json
+
+project_dir = '$project_dir'
+EXCLUDE_DIRS = {'.forge', '.remember', 'node_modules', '.git', '__pycache__', '.next', 'target', 'build', 'dist'}
+EXCLUDE_FILES = {'session.json', 'stderr.log', 'package-lock.json', 'run.sh', '.forge_prompt', '.exit_code'}
+
+files = []
+total_lines = 0
+extensions = {}
+
+for root, dirs, filenames in os.walk(project_dir):
+    dirs[:] = [d for d in dirs if d not in EXCLUDE_DIRS]
+    rel_root = os.path.relpath(root, project_dir)
+    for f in filenames:
+        if f in EXCLUDE_FILES or f.startswith('.'):
+            continue
+        rel_path = os.path.join(rel_root, f) if rel_root != '.' else f
+        full_path = os.path.join(root, f)
+        try:
+            size = os.path.getsize(full_path)
+            with open(full_path, 'r', errors='ignore') as fh:
+                lines = sum(1 for _ in fh)
+        except:
+            size = 0
+            lines = 0
+        ext = os.path.splitext(f)[1] or '(none)'
+        extensions[ext] = extensions.get(ext, 0) + 1
+        total_lines += lines
+        files.append({'path': rel_path, 'size': size, 'lines': lines})
+
+files.sort(key=lambda x: x['path'])
+top_dirs = sorted([d for d in os.listdir(project_dir)
+                   if os.path.isdir(os.path.join(project_dir, d))
+                   and d not in EXCLUDE_DIRS and not d.startswith('.')])
+
+print(json.dumps({
+    'file_count': len(files),
+    'total_lines': total_lines,
+    'extensions': extensions,
+    'top_level_dirs': top_dirs,
+    'files': files,
+}))
+" 2>/dev/null || echo "null"
+  else
+    echo "null"
+  fi
+}
+
+echo "Collecting code statistics..."
+CODE_STATS_ORIGINAL=$(extract_code_stats "${DIR_ORIGINAL}")
+CODE_STATS_RIG=$(extract_code_stats "${DIR_RIG}")
+
 # --- Compose results ---
 # Write JSON inputs as temp files to avoid shell interpolation issues
 # with large JSON payloads containing special characters.
@@ -369,6 +417,8 @@ echo "${STATS_ORIGINAL}" > "${BENCH_DIR}/_stats_original.json"
 echo "${STATS_RIG}" > "${BENCH_DIR}/_stats_rig.json"
 echo "${AUDIT_ORIGINAL}" > "${BENCH_DIR}/_audit_original.json"
 echo "${AUDIT_RIG}" > "${BENCH_DIR}/_audit_rig.json"
+echo "${CODE_STATS_ORIGINAL}" > "${BENCH_DIR}/_code_stats_original.json"
+echo "${CODE_STATS_RIG}" > "${BENCH_DIR}/_code_stats_rig.json"
 
 python3 -c "
 import json, sys
@@ -388,11 +438,13 @@ results = {
     'original': {
         'session': load_json_file(f'{bench_dir}/_stats_original.json'),
         'audit': load_json_file(f'{bench_dir}/_audit_original.json'),
+        'code_stats': load_json_file(f'{bench_dir}/_code_stats_original.json'),
         'exit_code': ${EXIT_ORIGINAL},
     },
     'rig': {
         'session': load_json_file(f'{bench_dir}/_stats_rig.json'),
         'audit': load_json_file(f'{bench_dir}/_audit_rig.json'),
+        'code_stats': load_json_file(f'{bench_dir}/_code_stats_rig.json'),
         'exit_code': ${EXIT_RIG},
     },
 }
@@ -402,7 +454,8 @@ print('results.json written')
 
 # Clean up temp files
 rm -f "${BENCH_DIR}/_stats_original.json" "${BENCH_DIR}/_stats_rig.json" \
-      "${BENCH_DIR}/_audit_original.json" "${BENCH_DIR}/_audit_rig.json"
+      "${BENCH_DIR}/_audit_original.json" "${BENCH_DIR}/_audit_rig.json" \
+      "${BENCH_DIR}/_code_stats_original.json" "${BENCH_DIR}/_code_stats_rig.json"
 
 echo ""
 echo "=== Results saved to ${BENCH_DIR}/results.json ==="
@@ -420,10 +473,12 @@ def fmt(variant):
     audit = v.get('audit')
     session = v.get('session')
     score = audit.get('overallScore', 'N/A') if audit else 'N/A'
-    cost = f\"\${session.get('cost_usd', 0):.2f}\" if session else 'N/A'
     turns = session.get('num_turns', 'N/A') if session else 'N/A'
     cycles = audit.get('totalCycles', 0) if audit else 0
-    return f'Score: {score}  Cost: {cost}  Turns: {turns}  Cycles: {cycles}'
+    code = v.get('code_stats')
+    files = code.get('file_count', '?') if code else '?'
+    loc = code.get('total_lines', '?') if code else '?'
+    return f'Score: {score}  Turns: {turns}  Cycles: {cycles}  Files: {files}  LOC: {loc}'
 
 print(f'  Original: {fmt(\"original\")}')
 print(f'  Rig:      {fmt(\"rig\")}')

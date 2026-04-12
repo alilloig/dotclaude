@@ -15,7 +15,8 @@ Generate a detailed comparison report from forge benchmark results.
 
 If a single path is given, treat it as a `.forge-bench/<label>/` directory:
 1. Read `results.json` from that directory
-2. The file contains `original.audit` and `rig.audit` scorecards plus session stats
+2. The file contains `original.audit` and `rig.audit` scorecards, session stats, and `code_stats`
+3. Read `meta.json` to get the project directories (`dir_original` and `dir_rig`)
 
 ### Option B: Two .forge/ paths
 
@@ -34,10 +35,11 @@ Produce a markdown comparison report with these sections:
 | Metric | Original (code-forge) | Rig (code-forge-rig) | Delta |
 |--------|----------------------|---------------------|-------|
 | Overall Score | X% | Y% | +/-Z% |
-| Cost | $X | $Y | +/-$Z |
 | Duration | Xm | Ym | +/-Zm |
 | Turns | X | Y | +/-Z |
 | Cycles Completed | X/N | Y/N | |
+| Source Files | X | Y | +/-Z |
+| Total LOC | X | Y | +/-Z |
 
 #### 2. Per-Check Comparison
 
@@ -61,17 +63,56 @@ Identify where each run deviated from the protocol:
 - Were any cycles advanced without passing evaluation?
 - Did enforcement hooks in the rig version actually prevent drift?
 
-#### 4. Cost-Benefit Analysis
+#### 4. Code Implementation Comparison
 
-- Was the rig version more expensive (due to hooks blocking and forcing retries)?
-- Did it produce higher quality output for the extra cost?
-- Token efficiency: cost per completed cycle
+Compare the actual source code produced by each variant. Use the project directories from `meta.json` (`dir_original` and `dir_rig`), resolved relative to the working directory where the bench was run.
 
-#### 5. Verdict
+**Steps:**
+1. Read `code_stats` from `results.json` for both variants — file counts, LOC, extension breakdown, and file manifests
+2. Identify files that exist in one variant but not the other
+3. For files that exist in both, read and compare the most important ones (entry points, main modules, config files — prioritize by size and centrality)
+4. If this is a review/improvement task (existing codebase), also compare against the original source in the repo root to assess what each variant actually changed
+
+**Report sub-sections:**
+
+##### 4a. Structural Overview
+
+| Metric | Original | Rig | Delta |
+|--------|----------|-----|-------|
+| Source files | X | Y | +/-Z |
+| Total LOC | X | Y | +/-Z |
+| Top-level modules | list | list | |
+| File types | breakdown | breakdown | |
+
+##### 4b. Architecture Differences
+
+Describe how each variant organized its code:
+- Module structure and separation of concerns
+- Naming conventions and consistency
+- Files unique to one variant (what does one produce that the other doesn't?)
+
+##### 4c. Implementation Quality Assessment
+
+For the 3-5 most important shared files, compare:
+- Completeness (does the code actually implement the requirements?)
+- Error handling and edge cases
+- Code clarity and idiomatics
+- Test coverage (are tests present? do they look meaningful?)
+
+##### 4d. Code Comparison Verdict
 
 One of:
-- **Rig clearly better** — higher adherence, hooks prevented measurable drift
-- **Rig marginally better** — slightly higher adherence, similar cost
+- **Original produced better code** — more complete, better structured, or more correct
+- **Rig produced better code** — enforcement hooks led to more thorough implementation
+- **Comparable quality** — both produced similar code despite protocol differences
+- **Both incomplete** — neither variant produced fully working code
+- **Cannot compare** — one or both failed before producing meaningful code
+
+#### 5. Overall Verdict
+
+One of:
+- **Rig clearly better** — higher adherence + better code output
+- **Rig marginally better** — slightly higher adherence, similar code quality
 - **No significant difference** — both performed similarly
 - **Original better** — rig hooks caused friction without quality improvement
 - **Inconclusive** — one or both runs failed/incomplete, can't compare fairly

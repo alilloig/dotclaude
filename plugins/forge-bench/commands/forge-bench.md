@@ -1,6 +1,6 @@
 ---
 description: "Run the same prompt through code-forge and code-forge-rig in parallel, then audit both"
-argument-hint: "\"<prompt>\" [--budget <usd>] [--model <model>] [--label <name>]"
+argument-hint: "\"<prompt>\" [--model <model>] [--label <name>]"
 ---
 
 # Forge Bench
@@ -12,7 +12,6 @@ Run a head-to-head comparison of code-forge (original) vs code-forge-rig (with e
 ## Instructions
 
 1. Parse the arguments. The first quoted string is the forge prompt. Optional flags:
-   - `--budget <usd>` — max spend per run (default: $50)
    - `--model <model>` — claude model alias (default: opus)
    - `--label <name>` — benchmark label (default: bench-{timestamp})
 
@@ -24,7 +23,7 @@ Run a head-to-head comparison of code-forge (original) vs code-forge-rig (with e
 3. The script runs both variants in parallel and produces:
    - `.forge-bench/<label>/original/` — code-forge run artifacts
    - `.forge-bench/<label>/rig/` — code-forge-rig run artifacts
-   - `.forge-bench/<label>/results.json` — combined session stats + audit scorecards
+   - `.forge-bench/<label>/results.json` — combined session stats, audit scorecards, and code statistics
 
 4. After the script completes, read `results.json` and present the comparison using the `/forge-compare` format.
 

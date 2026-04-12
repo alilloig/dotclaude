@@ -1,15 +1,21 @@
 {
+  "statusLine": {
+    "type": "command",
+    "command": "bash /Users/alilloig/.claude/statusline-command.sh"
+  },
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
-    "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "60",
     "CLAUDE_CODE_COORDINATOR_MODE": "1",
     "CLAUDE_CODE_NO_FLICKER": "1"
   },
   "permissions": {
-    "allow": ["Bash(claude team:*)", "Bash(claude:*)"],
+    "allow": [
+      "Bash(claude team:*)",
+      "Bash(claude:*)"
+    ],
     "defaultMode": "default"
   },
-  "model": "opus[1m]",
+  "model": "claude-opus-4-5-20250918[1m]",
   "hooks": {
     "SessionStart": [
       {

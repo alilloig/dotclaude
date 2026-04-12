@@ -1,6 +1,6 @@
 # Forge Bench — A/B Benchmarking for Code Forge Variants
 
-Benchmarking framework for comparing Code Forge plugin variants. Runs identical prompts through different forge versions, audits protocol adherence from artifacts, and produces structured comparison reports.
+Benchmarking framework for comparing Code Forge plugin variants. Runs identical prompts through different forge versions, audits protocol adherence from artifacts, and produces structured comparison reports including code quality analysis.
 
 ## Commands
 
@@ -15,14 +15,14 @@ Benchmarking framework for comparing Code Forge plugin variants. Runs identical 
 ### Run a benchmark
 
 ```
-/forge-bench "Build a real-time task management app with WebSocket collaboration" --budget 60
+/forge-bench "Build a real-time task management app with WebSocket collaboration"
 ```
 
 This launches two parallel Claude Code sessions:
 - One with the `code-forge` plugin (original, prose-only protocol)
 - One with the `code-forge-rig` plugin (with enforcement hooks)
 
-Both get the same prompt, same budget cap, same model. Results land in `.forge-bench/<label>/`.
+Both get the same prompt and model. Results land in `.forge-bench/<label>/`.
 
 ### Audit an existing run
 
@@ -38,13 +38,12 @@ Scores 7 protocol adherence checks and outputs a JSON scorecard.
 /forge-compare .forge-bench/bench-20260405-143200
 ```
 
-Reads the benchmark results and produces a markdown report with per-check comparison, cost-benefit analysis, and a verdict.
+Reads the benchmark results and produces a markdown report with per-check comparison, code implementation comparison, and a verdict.
 
 ## Benchmark Flags
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--budget <usd>` | 50 | Maximum spend per run (total max = 2x) |
 | `--model <model>` | opus | Claude model alias |
 | `--label <name>` | bench-{timestamp} | Benchmark label for the output directory |
 
@@ -54,10 +53,10 @@ Reads the benchmark results and produces a markdown report with per-check compar
 .forge-bench/<label>/
   prompt.txt              # The input prompt
   meta.json               # Benchmark configuration
-  results.json            # Combined session stats + audit scorecards
+  results.json            # Combined session stats + audit scorecards + code stats
   original/
     .forge/               # Artifacts from code-forge run
-    session.json          # Claude CLI output (cost, duration, turns, usage)
+    session.json          # Claude CLI output (duration, turns, usage)
     stderr.log            # Session stderr
   rig/
     .forge/               # Artifacts from code-forge-rig run
@@ -85,10 +84,10 @@ The **overall score** is the average of all 7 checks.
 
 `/forge-compare` produces a report with:
 
-1. **Summary Table** — overall score, cost, duration, turns, cycles for both variants
+1. **Summary Table** — overall score, duration, turns, cycles, file count, LOC for both variants
 2. **Per-Check Comparison** — side-by-side scores with winner per check
 3. **Protocol Drift Analysis** — specific phases skipped, gates missed, evaluations bypassed
-4. **Cost-Benefit Analysis** — whether enforcement hooks cost more but produce better adherence
+4. **Code Implementation Comparison** — structural overview, architecture differences, quality assessment of key files, and code verdict
 5. **Verdict** — one of: rig clearly better, marginally better, no difference, original better, inconclusive
 
 ## How It Works
@@ -101,13 +100,13 @@ The **overall score** is the average of all 7 checks.
    claude --print --output-format json \
      --plugin-dir <plugin-path> \
      --dangerously-skip-permissions \
-     --max-budget-usd <budget> \
      --model <model> \
      "/forge <prompt>"
    ```
 3. Each session runs autonomously with its own plugin variant
 4. After both complete, runs `forge-audit.mjs` on both `.forge/` directories
-5. Merges session metadata (cost, duration, turns) with audit scorecards into `results.json`
+5. Collects code statistics (file counts, LOC, structure) from both project directories
+6. Merges session metadata (duration, turns) with audit scorecards and code stats into `results.json`
 
 ### Auditor (`forge-audit.mjs`)
 
@@ -131,8 +130,8 @@ The **overall score** is the average of all 7 checks.
 
 - **Large delta between variants** — suggests enforcement hooks are catching real drift
 - **Similar scores** — the prompt may be simple enough that drift doesn't occur
-- **Rig higher cost, similar score** — hooks may be adding friction without benefit for this prompt complexity
-- **Rig lower cost, higher score** — hooks prevented wasted iterations from protocol violations
+- **Different code output, similar scores** — protocol adherence doesn't guarantee code quality; the code comparison section reveals this
+- **One variant produces more/better code** — check whether the extra structure comes from protocol discipline or just different interpretation of the prompt
 
 ## Requirements
 
