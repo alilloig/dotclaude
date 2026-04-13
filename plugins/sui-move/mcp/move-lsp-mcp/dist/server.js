@@ -4,12 +4,15 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { CallToolRequestSchema, ListToolsRequestSchema, } from '@modelcontextprotocol/sdk/types.js';
 import { readFileSync, existsSync } from 'fs';
-import { resolve, dirname } from 'path';
+import { resolve } from 'path';
 import { MoveLspClient } from './lsp-client.js';
 import { discoverBinary, getBinaryVersion } from './binary-discovery.js';
 import { parseConfig, validateConfig } from './config.js';
 import { log, setLogLevel, info, error } from './logger.js';
-import { BinaryNotFoundError, NoWorkspaceError, MoveLspError, INVALID_FILE_PATH, FILE_NOT_FOUND, NO_WORKSPACE, } from './errors.js';
+import { WorkspaceResolver } from './workspace.js';
+import { DocumentStore } from './document-store.js';
+import { checkVersionCompatibility } from './version.js';
+import { BinaryNotFoundError, NoWorkspaceError, MoveLspError, SymbolNotFoundError, LspStartFailedError, INVALID_FILE_PATH, FILE_NOT_FOUND, NO_WORKSPACE, } from './errors.js';
 // LSP diagnostic severity to string mapping
 function severityToString(severity) {
     switch (severity) {
@@ -32,6 +35,12 @@ export async function initializeBinaryOnStartup() {
         globalConfig = parseConfig();
         validateConfig(globalConfig);
         setLogLevel(globalConfig.moveLspLogLevel);
+    }
+    // Check VERSION.json compatibility at startup
+    const versionJsonPath = resolve(__dirname, '../../docs/VERSION.json');
+    const compatibility = checkVersionCompatibility(versionJsonPath);
+    if (!compatibility.compatible && compatibility.warning) {
+        log('warn', compatibility.warning, { event: 'version_check' });
     }
     if (globalBinaryPath)
         return;
@@ -62,6 +71,8 @@ export function createServer() {
         },
     });
     let lspClient = null;
+    const workspaceResolver = new WorkspaceResolver();
+    const documentStore = new DocumentStore();
     // Initialize binary discovery (uses global state from startup)
     async function initializeBinary() {
         if (globalBinaryPath)
@@ -81,31 +92,63 @@ export function createServer() {
             throw err;
         }
     }
-    // Find workspace root for a file path
-    function findWorkspaceRoot(filePath) {
-        let currentDir = dirname(resolve(filePath));
-        while (currentDir !== '/' && currentDir !== '.') {
-            const moveTomlPath = resolve(currentDir, 'Move.toml');
-            if (existsSync(moveTomlPath)) {
-                return currentDir;
-            }
-            const parentDir = dirname(currentDir);
-            if (parentDir === currentDir)
-                break; // Reached filesystem root
-            currentDir = parentDir;
-        }
-        throw new NoWorkspaceError(filePath);
-    }
-    // Initialize LSP client for a workspace
+    /**
+     * Initialize or restart LSP client for a workspace
+     * Handles restart recovery by reopening cached documents
+     */
     async function initializeLspClient(workspaceRoot) {
+        // If client is healthy and ready, nothing to do
         if (lspClient?.isReady())
             return;
+        // Check if we need to restart an unhealthy client
+        if (lspClient?.needsRestart()) {
+            log('info', 'LSP client needs restart, attempting recovery', {
+                event: 'lsp_restart_recovery',
+                workspaceRoot,
+            });
+            // Shutdown old client gracefully
+            try {
+                await lspClient.shutdown();
+            }
+            catch (err) {
+                log('warn', 'Error shutting down unhealthy client', { error: err });
+            }
+        }
+        // Check if hard failed - don't attempt restart
+        if (lspClient?.hasHardFailed()) {
+            throw new LspStartFailedError(`Max restarts (${config.moveLspMaxRestarts}) exceeded`, { consecutiveCrashes: lspClient.getConsecutiveCrashes() });
+        }
         await initializeBinary();
         if (!globalBinaryPath) {
             throw new Error('Binary not initialized');
         }
+        // Create new client (preserves restart count if existing client had crashes)
+        const previousCrashes = lspClient?.getConsecutiveCrashes() ?? 0;
         lspClient = new MoveLspClient(globalBinaryPath, config);
+        // Restore consecutive crash count for continuity
+        if (previousCrashes > 0) {
+            // The start() method will increment if it fails, so we don't need to set it manually
+            // but we log the recovery attempt context
+            log('info', 'Attempting restart after crashes', {
+                previousCrashes,
+                maxRestarts: config.moveLspMaxRestarts,
+            });
+        }
         await lspClient.start(workspaceRoot);
+        // After successful restart, reopen cached documents for this workspace
+        const cachedDocs = documentStore.getAllForWorkspace(workspaceRoot);
+        if (cachedDocs.length > 0) {
+            log('info', 'Reopening cached documents after restart', {
+                event: 'lsp_reopen_docs',
+                documentCount: cachedDocs.length,
+                workspaceRoot,
+            });
+            // Increment versions in document store before reopening
+            documentStore.incrementVersionsForWorkspace(workspaceRoot);
+            // Get updated documents with incremented versions
+            const updatedDocs = documentStore.getAllForWorkspace(workspaceRoot);
+            await lspClient.reopenDocuments(updatedDocs);
+        }
     }
     // Handle move_diagnostics tool
     async function handleMoveDiagnostics(args) {
@@ -118,16 +161,16 @@ export function createServer() {
         if (!content && !existsSync(resolvedPath)) {
             throw new MoveLspError(`File not found: ${resolvedPath}`, FILE_NOT_FOUND);
         }
-        // Find workspace root
+        // Find workspace root using cached resolver
         let workspaceRoot;
         try {
-            workspaceRoot = findWorkspaceRoot(resolvedPath);
+            workspaceRoot = workspaceResolver.resolve(resolvedPath);
         }
-        catch (error) {
-            if (error instanceof NoWorkspaceError) {
-                throw error;
+        catch (err) {
+            if (err instanceof NoWorkspaceError) {
+                throw err;
             }
-            throw new MoveLspError(`Failed to find workspace: ${error}`, NO_WORKSPACE);
+            throw new MoveLspError(`Failed to find workspace: ${err}`, NO_WORKSPACE);
         }
         // Initialize LSP client
         await initializeLspClient(workspaceRoot);
@@ -137,8 +180,19 @@ export function createServer() {
         // Read file content if not provided
         const fileContent = content || readFileSync(resolvedPath, 'utf8');
         const fileUri = `file://${resolvedPath}`;
-        // Open document in LSP server - this triggers diagnostics
-        await lspClient.didOpen(fileUri, fileContent);
+        // Track document state and use appropriate LSP notification
+        const existingDoc = documentStore.get(fileUri);
+        if (existingDoc) {
+            // Document already open - use didChange with incremented version
+            const newVersion = existingDoc.version + 1;
+            documentStore.didChange(fileUri, fileContent, newVersion);
+            await lspClient.didChange(fileUri, newVersion, [{ text: fileContent }]);
+        }
+        else {
+            // New document - use didOpen
+            documentStore.didOpen(fileUri, fileContent, 1);
+            await lspClient.didOpen(fileUri, fileContent);
+        }
         // Wait briefly for LSP server to process and send diagnostics
         // publishDiagnostics is async and may arrive after didOpen returns
         await new Promise(resolve => setTimeout(resolve, 500));
@@ -170,6 +224,133 @@ export function createServer() {
         });
         return result;
     }
+    /**
+     * Prepare document for LSP operations
+     * Opens or updates document in LSP client based on provided content or disk file
+     */
+    async function prepareDocument(resolvedPath, content) {
+        // Check if file exists (for file-on-disk mode)
+        if (!content && !existsSync(resolvedPath)) {
+            throw new MoveLspError(`File not found: ${resolvedPath}`, FILE_NOT_FOUND);
+        }
+        // Find workspace root using cached resolver
+        let workspaceRoot;
+        try {
+            workspaceRoot = workspaceResolver.resolve(resolvedPath);
+        }
+        catch (err) {
+            if (err instanceof NoWorkspaceError) {
+                throw err;
+            }
+            throw new MoveLspError(`Failed to find workspace: ${err}`, NO_WORKSPACE);
+        }
+        // Initialize LSP client
+        await initializeLspClient(workspaceRoot);
+        if (!lspClient) {
+            throw new Error('Failed to initialize LSP client');
+        }
+        // Read file content if not provided
+        const fileContent = content || readFileSync(resolvedPath, 'utf8');
+        const fileUri = `file://${resolvedPath}`;
+        // Track document state and use appropriate LSP notification
+        const existingDoc = documentStore.get(fileUri);
+        if (existingDoc) {
+            // Document already open - use didChange with incremented version
+            const newVersion = existingDoc.version + 1;
+            documentStore.didChange(fileUri, fileContent, newVersion);
+            await lspClient.didChange(fileUri, newVersion, [{ text: fileContent }]);
+        }
+        else {
+            // New document - use didOpen
+            documentStore.didOpen(fileUri, fileContent, 1);
+            await lspClient.didOpen(fileUri, fileContent);
+        }
+        // Wait briefly for LSP server to process
+        await new Promise(resolve => setTimeout(resolve, 100));
+        return { workspaceRoot, fileUri, fileContent };
+    }
+    // Handle move_hover tool
+    async function handleMoveHover(args) {
+        const { filePath, line, character, content } = args;
+        if (!filePath || typeof filePath !== 'string') {
+            throw new MoveLspError('filePath is required and must be a string', INVALID_FILE_PATH);
+        }
+        if (typeof line !== 'number' || line < 0) {
+            throw new MoveLspError('line is required and must be a non-negative number', INVALID_FILE_PATH);
+        }
+        if (typeof character !== 'number' || character < 0) {
+            throw new MoveLspError('character is required and must be a non-negative number', INVALID_FILE_PATH);
+        }
+        const resolvedPath = resolve(filePath);
+        const { workspaceRoot, fileUri } = await prepareDocument(resolvedPath, content);
+        const result = await lspClient.hover(fileUri, line, character);
+        log('info', 'Hover request completed', {
+            filePath: resolvedPath,
+            line,
+            character,
+            hasContents: result !== null,
+        });
+        return {
+            workspaceRoot,
+            contents: result?.contents ?? null,
+        };
+    }
+    // Handle move_completions tool
+    async function handleMoveCompletions(args) {
+        const { filePath, line, character, content } = args;
+        if (!filePath || typeof filePath !== 'string') {
+            throw new MoveLspError('filePath is required and must be a string', INVALID_FILE_PATH);
+        }
+        if (typeof line !== 'number' || line < 0) {
+            throw new MoveLspError('line is required and must be a non-negative number', INVALID_FILE_PATH);
+        }
+        if (typeof character !== 'number' || character < 0) {
+            throw new MoveLspError('character is required and must be a non-negative number', INVALID_FILE_PATH);
+        }
+        const resolvedPath = resolve(filePath);
+        const { workspaceRoot, fileUri } = await prepareDocument(resolvedPath, content);
+        const result = await lspClient.completion(fileUri, line, character);
+        log('info', 'Completions request completed', {
+            filePath: resolvedPath,
+            line,
+            character,
+            completionCount: result.completions.length,
+        });
+        return {
+            workspaceRoot,
+            completions: result.completions,
+        };
+    }
+    // Handle move_goto_definition tool
+    // Cross-package goto-definition may not resolve due to move-analyzer limitations on multi-package workspaces
+    async function handleMoveGotoDefinition(args) {
+        const { filePath, line, character, content } = args;
+        if (!filePath || typeof filePath !== 'string') {
+            throw new MoveLspError('filePath is required and must be a string', INVALID_FILE_PATH);
+        }
+        if (typeof line !== 'number' || line < 0) {
+            throw new MoveLspError('line is required and must be a non-negative number', INVALID_FILE_PATH);
+        }
+        if (typeof character !== 'number' || character < 0) {
+            throw new MoveLspError('character is required and must be a non-negative number', INVALID_FILE_PATH);
+        }
+        const resolvedPath = resolve(filePath);
+        const { workspaceRoot, fileUri } = await prepareDocument(resolvedPath, content);
+        const locations = await lspClient.gotoDefinition(fileUri, line, character);
+        if (locations.length === 0) {
+            throw new SymbolNotFoundError('symbol', `${filePath}:${line}:${character}`);
+        }
+        log('info', 'Goto-definition request completed', {
+            filePath: resolvedPath,
+            line,
+            character,
+            locationCount: locations.length,
+        });
+        return {
+            workspaceRoot,
+            locations,
+        };
+    }
     // Register tools
     server.setRequestHandler(ListToolsRequestSchema, async () => {
         return {
@@ -198,26 +379,115 @@ export function createServer() {
                         required: ['filePath'],
                     },
                 },
+                {
+                    name: 'move_hover',
+                    description: 'Get hover information (type, documentation) for a symbol at a position in a Move file',
+                    inputSchema: {
+                        type: 'object',
+                        properties: {
+                            filePath: {
+                                type: 'string',
+                                description: 'Path to the Move source file',
+                            },
+                            line: {
+                                type: 'number',
+                                description: 'Line number (0-based)',
+                            },
+                            character: {
+                                type: 'number',
+                                description: 'Character offset (0-based)',
+                            },
+                            content: {
+                                type: 'string',
+                                description: 'Optional file content (if not provided, reads from filePath)',
+                            },
+                        },
+                        required: ['filePath', 'line', 'character'],
+                    },
+                },
+                {
+                    name: 'move_completions',
+                    description: 'Get completion candidates at a position in a Move file',
+                    inputSchema: {
+                        type: 'object',
+                        properties: {
+                            filePath: {
+                                type: 'string',
+                                description: 'Path to the Move source file',
+                            },
+                            line: {
+                                type: 'number',
+                                description: 'Line number (0-based)',
+                            },
+                            character: {
+                                type: 'number',
+                                description: 'Character offset (0-based)',
+                            },
+                            content: {
+                                type: 'string',
+                                description: 'Optional file content (if not provided, reads from filePath)',
+                            },
+                        },
+                        required: ['filePath', 'line', 'character'],
+                    },
+                },
+                {
+                    name: 'move_goto_definition',
+                    description: 'Get the definition location for a symbol at a position in a Move file. Cross-package goto-definition may not resolve due to move-analyzer limitations.',
+                    inputSchema: {
+                        type: 'object',
+                        properties: {
+                            filePath: {
+                                type: 'string',
+                                description: 'Path to the Move source file',
+                            },
+                            line: {
+                                type: 'number',
+                                description: 'Line number (0-based)',
+                            },
+                            character: {
+                                type: 'number',
+                                description: 'Character offset (0-based)',
+                            },
+                            content: {
+                                type: 'string',
+                                description: 'Optional file content (if not provided, reads from filePath)',
+                            },
+                        },
+                        required: ['filePath', 'line', 'character'],
+                    },
+                },
             ],
         };
     });
     server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const { name, arguments: args } = request.params;
         try {
+            let result;
             switch (name) {
                 case 'move_diagnostics':
-                    const result = await handleMoveDiagnostics(args || {});
-                    return {
-                        content: [
-                            {
-                                type: 'text',
-                                text: JSON.stringify(result, null, 2),
-                            },
-                        ],
-                    };
+                    result = await handleMoveDiagnostics(args || {});
+                    break;
+                case 'move_hover':
+                    result = await handleMoveHover(args || {});
+                    break;
+                case 'move_completions':
+                    result = await handleMoveCompletions(args || {});
+                    break;
+                case 'move_goto_definition':
+                    result = await handleMoveGotoDefinition(args || {});
+                    break;
                 default:
                     throw new Error(`Unknown tool: ${name}`);
             }
+            return {
+                content: [
+                    {
+                        type: 'text',
+                        text: JSON.stringify(result, null, 2),
+                    },
+                ],
+            };
         }
         catch (error) {
             log('error', `Tool ${name} failed`, { error, args });

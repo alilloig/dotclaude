@@ -67,4 +67,44 @@ export class DocumentStore {
   clear(): void {
     this.documents.clear();
   }
+
+  /**
+   * Get all tracked documents (for reopening after LSP restart)
+   * Returns a copy of all stored documents
+   */
+  getAll(): StoredDocument[] {
+    return Array.from(this.documents.values());
+  }
+
+  /**
+   * Get all documents for a specific workspace root
+   * Filters documents whose URI starts with the workspace root
+   * @param workspaceRoot The workspace root path (e.g., /path/to/project)
+   */
+  getAllForWorkspace(workspaceRoot: string): StoredDocument[] {
+    // Ensure workspace URI ends with / to avoid matching partial paths
+    // e.g., /workspace should not match /workspace-other
+    const workspaceUri = `file://${workspaceRoot}`;
+    const workspaceUriWithSlash = workspaceUri.endsWith('/') ? workspaceUri : `${workspaceUri}/`;
+
+    return Array.from(this.documents.values()).filter(doc =>
+      doc.uri.startsWith(workspaceUriWithSlash) || doc.uri === workspaceUri
+    );
+  }
+
+  /**
+   * Increment versions for all documents in a workspace
+   * Used after restart to ensure LSP sees fresh documents
+   * @param workspaceRoot The workspace root path
+   */
+  incrementVersionsForWorkspace(workspaceRoot: string): void {
+    const workspaceUri = `file://${workspaceRoot}`;
+    const workspaceUriWithSlash = workspaceUri.endsWith('/') ? workspaceUri : `${workspaceUri}/`;
+
+    for (const doc of this.documents.values()) {
+      if (doc.uri.startsWith(workspaceUriWithSlash) || doc.uri === workspaceUri) {
+        doc.version++;
+      }
+    }
+  }
 }

@@ -102,19 +102,56 @@ function completionKindToString(kind?: CompletionItemKind): string {
 
 /**
  * LSP Client for move-analyzer
+ *
+ * Handles crash recovery, timeout handling, and automatic restart with configurable limits.
+ * After MOVE_LSP_MAX_RESTARTS consecutive crashes, the client enters a "hard failed" state.
  */
 export class MoveLspClient {
   private process: ChildProcess | null = null;
   private nextId = 1;
   private pendingRequests = new Map<number, PendingRequest<any>>();
   private isInitialized = false;
-  private restartCount = 0;
+  private consecutiveCrashes = 0;  // Resets on successful operation
+  private hardFailed = false;      // True after max restarts exceeded
+  private isUnhealthy = false;     // True after timeout or protocol error
+  private currentWorkspaceRoot: string | null = null;
   private diagnosticsStore = new Map<string, LspDiagnostic['diagnostics']>();
+  private timeoutTimers = new Map<number, NodeJS.Timeout>();  // Track timeout timers for cleanup
+  private killTimer: NodeJS.Timeout | null = null;  // Timer for SIGKILL escalation
 
   constructor(
     private readonly binaryPath: string,
     private readonly config: Config
   ) {}
+
+  /**
+   * Get the current child process PID (for testing/monitoring)
+   */
+  getPid(): number | null {
+    return this.process?.pid ?? null;
+  }
+
+  /**
+   * Check if the client has exceeded max restarts
+   */
+  hasHardFailed(): boolean {
+    return this.hardFailed;
+  }
+
+  /**
+   * Get current restart count
+   */
+  getConsecutiveCrashes(): number {
+    return this.consecutiveCrashes;
+  }
+
+  /**
+   * Reset hard failed state (for testing)
+   */
+  resetHardFailed(): void {
+    this.hardFailed = false;
+    this.consecutiveCrashes = 0;
+  }
 
   /**
    * Get cached diagnostics for a URI
@@ -143,12 +180,25 @@ export class MoveLspClient {
 
   /**
    * Start the LSP server process
+   * @throws LspStartFailedError if max restarts exceeded or startup fails
    */
   async start(workspaceRoot: string): Promise<void> {
+    // Check if we've exceeded max restarts
+    if (this.hardFailed) {
+      throw new LspStartFailedError(
+        `Max restarts (${this.config.moveLspMaxRestarts}) exceeded`,
+        { consecutiveCrashes: this.consecutiveCrashes }
+      );
+    }
+
     log('info', 'Starting Move LSP client', {
       binaryPath: this.binaryPath,
       workspaceRoot,
+      consecutiveCrashes: this.consecutiveCrashes,
     });
+
+    this.currentWorkspaceRoot = workspaceRoot;
+    this.isUnhealthy = false;
 
     try {
       // Spawn move-analyzer in LSP mode
@@ -178,10 +228,21 @@ export class MoveLspClient {
       // Initialize the LSP server
       await this.initialize(workspaceRoot);
 
+      // Successful start - reset consecutive crash counter
+      this.consecutiveCrashes = 0;
+
       log('info', 'Move LSP client started successfully');
     } catch (error) {
       log('error', 'Failed to start LSP client', { error });
-      await this.shutdown();
+      this.consecutiveCrashes++;
+      if (this.consecutiveCrashes >= this.config.moveLspMaxRestarts) {
+        this.hardFailed = true;
+        log('error', 'Max restarts exceeded, entering hard failed state', {
+          event: 'lsp_hard_failed',
+          consecutiveCrashes: this.consecutiveCrashes,
+        });
+      }
+      await this.forceKill();
       throw new LspStartFailedError(`Startup failed: ${error}`);
     }
   }
@@ -262,9 +323,20 @@ export class MoveLspClient {
             parseError: error,
             messageContent: messageContent.substring(0, 200) // Truncate for logging
           });
-          log('error', 'Failed to parse LSP message', { error: protocolError });
-          // Re-throw to surface the protocol error
-          throw protocolError;
+          log('error', 'Malformed JSON-RPC response, killing child and marking unhealthy', {
+            error: protocolError,
+            event: 'lsp_protocol_error',
+          });
+
+          // Mark as unhealthy and kill child process
+          this.isUnhealthy = true;
+          this.killWithEscalation();
+
+          // Reject all pending requests with protocol error
+          for (const [, pending] of this.pendingRequests) {
+            pending.reject(protocolError);
+          }
+          this.pendingRequests.clear();
         }
       }
     });
@@ -275,13 +347,21 @@ export class MoveLspClient {
    */
   private handleMessage(message: any): void {
     if (message.id !== undefined && this.pendingRequests.has(message.id)) {
-      // Response to our request
+      // Response to our request - clear timeout timer first
+      const timeoutTimer = this.timeoutTimers.get(message.id);
+      if (timeoutTimer) {
+        clearTimeout(timeoutTimer);
+        this.timeoutTimers.delete(message.id);
+      }
+
       const pending = this.pendingRequests.get(message.id)!;
       this.pendingRequests.delete(message.id);
 
       if (message.error) {
         pending.reject(new Error(`LSP error: ${JSON.stringify(message.error)}`));
       } else {
+        // Successful response - reset consecutive crash counter
+        this.consecutiveCrashes = 0;
         pending.resolve(message.result);
       }
     } else if (message.method === 'textDocument/publishDiagnostics') {
@@ -296,6 +376,7 @@ export class MoveLspClient {
 
   /**
    * Send an LSP request and wait for response
+   * On timeout: sends SIGTERM, waits 2s, sends SIGKILL if still alive
    */
   private sendRequest<T>(method: string, params: unknown): Promise<T> {
     return new Promise((resolve, reject) => {
@@ -310,19 +391,65 @@ export class MoveLspClient {
       this.pendingRequests.set(id, { resolve: resolve as any, reject, method });
       this.sendMessage(message);
 
-      // Set timeout
-      setTimeout(() => {
+      // Set timeout with SIGTERM/SIGKILL escalation
+      const timeoutTimer = setTimeout(() => {
         if (this.pendingRequests.has(id)) {
           this.pendingRequests.delete(id);
+          this.timeoutTimers.delete(id);
+
           log('warn', 'LSP request timed out', {
             event: 'lsp_timeout',
             method,
             timeoutMs: this.config.moveLspTimeoutMs,
           });
+
+          // Mark as unhealthy - next request will trigger restart
+          this.isUnhealthy = true;
+
+          // Kill the child process with SIGTERM/SIGKILL escalation
+          this.killWithEscalation();
+
           reject(new LspTimeoutError(method, this.config.moveLspTimeoutMs));
         }
       }, this.config.moveLspTimeoutMs);
+
+      this.timeoutTimers.set(id, timeoutTimer);
     });
+  }
+
+  /**
+   * Kill child process with SIGTERM, escalate to SIGKILL after 2000ms
+   */
+  private killWithEscalation(): void {
+    if (!this.process) return;
+
+    const pid = this.process.pid;
+    log('info', 'Sending SIGTERM to LSP process', { pid });
+    this.process.kill('SIGTERM');
+
+    // Schedule SIGKILL if process doesn't exit
+    this.killTimer = setTimeout(() => {
+      if (this.process && this.process.pid === pid) {
+        log('warn', 'LSP process did not exit after SIGTERM, sending SIGKILL', { pid });
+        this.process.kill('SIGKILL');
+      }
+      this.killTimer = null;
+    }, 2000);
+  }
+
+  /**
+   * Force kill the child process immediately
+   */
+  private async forceKill(): Promise<void> {
+    if (this.killTimer) {
+      clearTimeout(this.killTimer);
+      this.killTimer = null;
+    }
+    if (this.process) {
+      this.process.kill('SIGKILL');
+      this.process = null;
+    }
+    this.isInitialized = false;
   }
 
   /**
@@ -529,28 +656,53 @@ export class MoveLspClient {
 
   /**
    * Handle process exit
+   * Rejects all pending requests immediately with LSP_CRASHED error
    */
   private handleProcessExit(code: number | null, signal: string | null): void {
+    // Clear any pending kill timer
+    if (this.killTimer) {
+      clearTimeout(this.killTimer);
+      this.killTimer = null;
+    }
+
+    // Clear all timeout timers
+    for (const timer of this.timeoutTimers.values()) {
+      clearTimeout(timer);
+    }
+    this.timeoutTimers.clear();
+
     this.process = null;
     this.isInitialized = false;
 
     // Create LspCrashedError for pending request rejections
     const crashedError = new LspCrashedError(code, signal);
 
-    // Reject any pending requests with the proper error type
+    // Reject any pending requests immediately with the proper error type
+    const pendingCount = this.pendingRequests.size;
     for (const [, pending] of this.pendingRequests) {
       pending.reject(crashedError);
     }
     this.pendingRequests.clear();
 
-    if (code !== 0 && this.restartCount < this.config.moveLspMaxRestarts) {
-      this.restartCount++;
-      log('warn', 'LSP process crashed, attempting restart', {
-        event: 'lsp_restart_attempt',
-        restartCount: this.restartCount,
-        reason: `Process exited with code ${code}${signal ? ` (signal: ${signal})` : ''}`,
+    // Track consecutive crashes if this was an unexpected exit
+    if (code !== 0 || signal) {
+      this.consecutiveCrashes++;
+      log('warn', 'LSP process crashed', {
+        event: 'lsp_crashed',
+        code,
+        signal,
+        consecutiveCrashes: this.consecutiveCrashes,
+        pendingRequestsRejected: pendingCount,
       });
-      // Note: Restart logic would be implemented by the server
+
+      // Check if we've exceeded max restarts
+      if (this.consecutiveCrashes >= this.config.moveLspMaxRestarts) {
+        this.hardFailed = true;
+        log('error', 'Max restarts exceeded, entering hard failed state', {
+          event: 'lsp_hard_failed',
+          consecutiveCrashes: this.consecutiveCrashes,
+        });
+      }
     }
   }
 
@@ -578,8 +730,40 @@ export class MoveLspClient {
 
   /**
    * Check if the client is ready for requests
+   * Returns false if uninitialized, no process, unhealthy, or hard failed
    */
   isReady(): boolean {
-    return this.isInitialized && this.process !== null;
+    return this.isInitialized && this.process !== null && !this.isUnhealthy && !this.hardFailed;
+  }
+
+  /**
+   * Check if the client needs restart (unhealthy but not hard failed)
+   */
+  needsRestart(): boolean {
+    return (this.isUnhealthy || !this.isInitialized || this.process === null) && !this.hardFailed;
+  }
+
+  /**
+   * Get current workspace root
+   */
+  getWorkspaceRoot(): string | null {
+    return this.currentWorkspaceRoot;
+  }
+
+  /**
+   * Reopen documents after restart
+   * Called by server after restart to restore document state
+   * @param documents Array of documents to reopen with incremented versions
+   */
+  async reopenDocuments(documents: Array<{ uri: string; content: string; version: number }>): Promise<void> {
+    if (!this.isInitialized) {
+      throw new Error('LSP client not initialized');
+    }
+
+    for (const doc of documents) {
+      // Use incremented version to ensure LSP sees fresh document
+      await this.didOpen(doc.uri, doc.content, 'move');
+      log('debug', 'Reopened document after restart', { uri: doc.uri, version: doc.version });
+    }
   }
 }

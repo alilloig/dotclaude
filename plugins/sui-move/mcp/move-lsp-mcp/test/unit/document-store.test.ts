@@ -100,4 +100,87 @@ describe('DocumentStore', () => {
       expect(store.size).toBe(0);
     });
   });
+
+  describe('getAll', () => {
+    test('should return empty array when no documents', () => {
+      const docs = store.getAll();
+      expect(docs).toEqual([]);
+    });
+
+    test('should return all tracked documents', () => {
+      store.didOpen('file:///a.move', 'module a {}', 1);
+      store.didOpen('file:///b.move', 'module b {}', 2);
+
+      const docs = store.getAll();
+      expect(docs).toHaveLength(2);
+      expect(docs.map(d => d.uri).sort()).toEqual([
+        'file:///a.move',
+        'file:///b.move',
+      ]);
+    });
+
+    test('should return copies, not references', () => {
+      store.didOpen('file:///test.move', 'content', 1);
+
+      const docs = store.getAll();
+      expect(docs).toHaveLength(1);
+
+      // Modifying returned array should not affect store
+      docs.pop();
+      expect(store.size).toBe(1);
+    });
+  });
+
+  describe('getAllForWorkspace', () => {
+    test('should return empty array when no matching documents', () => {
+      store.didOpen('file:///other/path/a.move', 'module a {}', 1);
+
+      const docs = store.getAllForWorkspace('/workspace');
+      expect(docs).toEqual([]);
+    });
+
+    test('should return only documents in workspace', () => {
+      store.didOpen('file:///workspace/a.move', 'module a {}', 1);
+      store.didOpen('file:///workspace/src/b.move', 'module b {}', 2);
+      store.didOpen('file:///other/c.move', 'module c {}', 3);
+
+      const docs = store.getAllForWorkspace('/workspace');
+      expect(docs).toHaveLength(2);
+      expect(docs.map(d => d.uri).sort()).toEqual([
+        'file:///workspace/a.move',
+        'file:///workspace/src/b.move',
+      ]);
+    });
+
+    test('should not match partial path prefixes', () => {
+      store.didOpen('file:///workspace-other/a.move', 'module a {}', 1);
+
+      const docs = store.getAllForWorkspace('/workspace');
+      expect(docs).toEqual([]);
+    });
+  });
+
+  describe('incrementVersionsForWorkspace', () => {
+    test('should increment versions for workspace documents only', () => {
+      store.didOpen('file:///workspace/a.move', 'module a {}', 1);
+      store.didOpen('file:///workspace/src/b.move', 'module b {}', 2);
+      store.didOpen('file:///other/c.move', 'module c {}', 3);
+
+      store.incrementVersionsForWorkspace('/workspace');
+
+      expect(store.get('file:///workspace/a.move')!.version).toBe(2);
+      expect(store.get('file:///workspace/src/b.move')!.version).toBe(3);
+      expect(store.get('file:///other/c.move')!.version).toBe(3); // Unchanged
+    });
+
+    test('should handle empty workspace', () => {
+      store.didOpen('file:///other/a.move', 'module a {}', 1);
+
+      // Should not throw
+      expect(() => store.incrementVersionsForWorkspace('/workspace')).not.toThrow();
+
+      // Version unchanged
+      expect(store.get('file:///other/a.move')!.version).toBe(1);
+    });
+  });
 });

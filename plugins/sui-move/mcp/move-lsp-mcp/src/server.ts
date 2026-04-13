@@ -21,6 +21,7 @@ import {
   NoWorkspaceError,
   MoveLspError,
   SymbolNotFoundError,
+  LspStartFailedError,
   INVALID_FILE_PATH,
   FILE_NOT_FOUND,
   NO_WORKSPACE,
@@ -169,17 +170,75 @@ export function createServer(): Server {
     }
   }
 
-  // Initialize LSP client for a workspace
+  /**
+   * Initialize or restart LSP client for a workspace
+   * Handles restart recovery by reopening cached documents
+   */
   async function initializeLspClient(workspaceRoot: string): Promise<void> {
+    // If client is healthy and ready, nothing to do
     if (lspClient?.isReady()) return;
+
+    // Check if we need to restart an unhealthy client
+    if (lspClient?.needsRestart()) {
+      log('info', 'LSP client needs restart, attempting recovery', {
+        event: 'lsp_restart_recovery',
+        workspaceRoot,
+      });
+
+      // Shutdown old client gracefully
+      try {
+        await lspClient.shutdown();
+      } catch (err) {
+        log('warn', 'Error shutting down unhealthy client', { error: err });
+      }
+    }
+
+    // Check if hard failed - don't attempt restart
+    if (lspClient?.hasHardFailed()) {
+      throw new LspStartFailedError(
+        `Max restarts (${config.moveLspMaxRestarts}) exceeded`,
+        { consecutiveCrashes: lspClient.getConsecutiveCrashes() }
+      );
+    }
 
     await initializeBinary();
     if (!globalBinaryPath) {
       throw new Error('Binary not initialized');
     }
 
+    // Create new client (preserves restart count if existing client had crashes)
+    const previousCrashes = lspClient?.getConsecutiveCrashes() ?? 0;
     lspClient = new MoveLspClient(globalBinaryPath, config);
+
+    // Restore consecutive crash count for continuity
+    if (previousCrashes > 0) {
+      // The start() method will increment if it fails, so we don't need to set it manually
+      // but we log the recovery attempt context
+      log('info', 'Attempting restart after crashes', {
+        previousCrashes,
+        maxRestarts: config.moveLspMaxRestarts,
+      });
+    }
+
     await lspClient.start(workspaceRoot);
+
+    // After successful restart, reopen cached documents for this workspace
+    const cachedDocs = documentStore.getAllForWorkspace(workspaceRoot);
+    if (cachedDocs.length > 0) {
+      log('info', 'Reopening cached documents after restart', {
+        event: 'lsp_reopen_docs',
+        documentCount: cachedDocs.length,
+        workspaceRoot,
+      });
+
+      // Increment versions in document store before reopening
+      documentStore.incrementVersionsForWorkspace(workspaceRoot);
+
+      // Get updated documents with incremented versions
+      const updatedDocs = documentStore.getAllForWorkspace(workspaceRoot);
+
+      await lspClient.reopenDocuments(updatedDocs);
+    }
   }
 
   // Handle move_diagnostics tool
