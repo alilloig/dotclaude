@@ -9,6 +9,11 @@ import {
   TextDocumentItem,
   VersionedTextDocumentIdentifier,
   TextDocumentContentChangeEvent,
+  Hover,
+  CompletionItem,
+  CompletionItemKind,
+  Location,
+  LocationLink,
 } from 'vscode-languageserver-protocol';
 import { LspStartFailedError, LspTimeoutError, LspCrashedError, LspProtocolError } from './errors.js';
 import { log } from './logger.js';
@@ -38,6 +43,61 @@ export interface LspDiagnostic {
     source?: string;
     message: string;
   }>;
+}
+
+/**
+ * Hover result from LSP
+ */
+export interface HoverResult {
+  contents: string;
+}
+
+/**
+ * Completion result from LSP
+ */
+export interface CompletionResult {
+  completions: Array<{
+    label: string;
+    kind: string;
+    detail?: string;
+  }>;
+}
+
+/**
+ * Location result from LSP goto-definition
+ */
+export interface LocationResult {
+  filePath: string;
+  line: number;
+  character: number;
+}
+
+/**
+ * Map LSP CompletionItemKind to normalized string
+ * Cross-package goto-definition may not resolve due to move-analyzer limitations on multi-package workspaces
+ */
+function completionKindToString(kind?: CompletionItemKind): string {
+  switch (kind) {
+    case CompletionItemKind.Function:
+    case CompletionItemKind.Method:
+      return 'function';
+    case CompletionItemKind.Struct:
+    case CompletionItemKind.Class:
+      return 'struct';
+    case CompletionItemKind.Field:
+    case CompletionItemKind.Property:
+      return 'field';
+    case CompletionItemKind.Module:
+      return 'module';
+    case CompletionItemKind.Keyword:
+      return 'keyword';
+    case CompletionItemKind.Variable:
+      return 'variable';
+    case CompletionItemKind.Constant:
+      return 'constant';
+    default:
+      return 'unknown';
+  }
 }
 
 /**
@@ -334,6 +394,137 @@ export class MoveLspClient {
     };
 
     await this.sendNotification('textDocument/didChange', params);
+  }
+
+  /**
+   * Request hover information for a position
+   * @param uri Document URI
+   * @param line 0-based line number
+   * @param character 0-based character offset
+   */
+  async hover(uri: string, line: number, character: number): Promise<HoverResult | null> {
+    if (!this.isInitialized) {
+      throw new Error('LSP client not initialized');
+    }
+
+    const params = {
+      textDocument: { uri },
+      position: { line, character },
+    };
+
+    const result = await this.sendRequest<Hover | null>('textDocument/hover', params);
+
+    if (!result || !result.contents) {
+      return null;
+    }
+
+    // Normalize contents to string
+    let contents: string;
+    if (typeof result.contents === 'string') {
+      contents = result.contents;
+    } else if (Array.isArray(result.contents)) {
+      contents = result.contents
+        .map(c => (typeof c === 'string' ? c : (c as { value: string }).value))
+        .join('\n');
+    } else if ('value' in result.contents) {
+      contents = (result.contents as { value: string }).value;
+    } else {
+      contents = String(result.contents);
+    }
+
+    return { contents };
+  }
+
+  /**
+   * Request completion candidates for a position
+   * @param uri Document URI
+   * @param line 0-based line number
+   * @param character 0-based character offset
+   */
+  async completion(uri: string, line: number, character: number): Promise<CompletionResult> {
+    if (!this.isInitialized) {
+      throw new Error('LSP client not initialized');
+    }
+
+    const params = {
+      textDocument: { uri },
+      position: { line, character },
+    };
+
+    const result = await this.sendRequest<CompletionItem[] | { items: CompletionItem[] } | null>(
+      'textDocument/completion',
+      params
+    );
+
+    // Handle null or empty response
+    if (!result) {
+      return { completions: [] };
+    }
+
+    // Handle both array and CompletionList formats
+    const items = Array.isArray(result) ? result : (result.items || []);
+
+    const completions = items.map(item => {
+      const completion: { label: string; kind: string; detail?: string } = {
+        label: item.label,
+        kind: completionKindToString(item.kind),
+      };
+      if (item.detail) {
+        completion.detail = item.detail;
+      }
+      return completion;
+    });
+
+    return { completions };
+  }
+
+  /**
+   * Request goto-definition for a position
+   * Cross-package goto-definition may not resolve due to move-analyzer limitations on multi-package workspaces
+   * @param uri Document URI
+   * @param line 0-based line number
+   * @param character 0-based character offset
+   */
+  async gotoDefinition(uri: string, line: number, character: number): Promise<LocationResult[]> {
+    if (!this.isInitialized) {
+      throw new Error('LSP client not initialized');
+    }
+
+    const params = {
+      textDocument: { uri },
+      position: { line, character },
+    };
+
+    const result = await this.sendRequest<Location | Location[] | LocationLink[] | null>(
+      'textDocument/definition',
+      params
+    );
+
+    if (!result) {
+      return [];
+    }
+
+    // Normalize to array
+    const locations = Array.isArray(result) ? result : [result];
+
+    return locations.map(loc => {
+      // Handle both Location and LocationLink formats
+      if ('targetUri' in loc) {
+        // LocationLink
+        return {
+          filePath: loc.targetUri.replace('file://', ''),
+          line: loc.targetSelectionRange.start.line,
+          character: loc.targetSelectionRange.start.character,
+        };
+      } else {
+        // Location
+        return {
+          filePath: loc.uri.replace('file://', ''),
+          line: loc.range.start.line,
+          character: loc.range.start.character,
+        };
+      }
+    });
   }
 
   /**
