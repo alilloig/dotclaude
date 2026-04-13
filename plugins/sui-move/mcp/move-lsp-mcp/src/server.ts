@@ -8,11 +8,12 @@ import {
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { readFileSync, existsSync } from 'fs';
-import { resolve, dirname } from 'path';
+import { resolve } from 'path';
 import { MoveLspClient } from './lsp-client.js';
 import { discoverBinary, getBinaryVersion } from './binary-discovery.js';
 import { parseConfig, validateConfig } from './config.js';
 import { log, setLogLevel, info, error } from './logger.js';
+import { WorkspaceResolver } from './workspace.js';
 import {
   BinaryNotFoundError,
   NoWorkspaceError,
@@ -103,6 +104,7 @@ export function createServer(): Server {
   );
 
   let lspClient: MoveLspClient | null = null;
+  const workspaceResolver = new WorkspaceResolver();
 
   // Initialize binary discovery (uses global state from startup)
   async function initializeBinary(): Promise<void> {
@@ -121,23 +123,6 @@ export function createServer(): Server {
       }
       throw err;
     }
-  }
-
-  // Find workspace root for a file path
-  function findWorkspaceRoot(filePath: string): string {
-    let currentDir = dirname(resolve(filePath));
-
-    while (currentDir !== '/' && currentDir !== '.') {
-      const moveTomlPath = resolve(currentDir, 'Move.toml');
-      if (existsSync(moveTomlPath)) {
-        return currentDir;
-      }
-      const parentDir = dirname(currentDir);
-      if (parentDir === currentDir) break; // Reached filesystem root
-      currentDir = parentDir;
-    }
-
-    throw new NoWorkspaceError(filePath);
   }
 
   // Initialize LSP client for a workspace
@@ -168,15 +153,15 @@ export function createServer(): Server {
       throw new MoveLspError(`File not found: ${resolvedPath}`, FILE_NOT_FOUND);
     }
 
-    // Find workspace root
+    // Find workspace root using cached resolver
     let workspaceRoot: string;
     try {
-      workspaceRoot = findWorkspaceRoot(resolvedPath);
-    } catch (error) {
-      if (error instanceof NoWorkspaceError) {
-        throw error;
+      workspaceRoot = workspaceResolver.resolve(resolvedPath);
+    } catch (err) {
+      if (err instanceof NoWorkspaceError) {
+        throw err;
       }
-      throw new MoveLspError(`Failed to find workspace: ${error}`, NO_WORKSPACE);
+      throw new MoveLspError(`Failed to find workspace: ${err}`, NO_WORKSPACE);
     }
 
     // Initialize LSP client

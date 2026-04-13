@@ -10,7 +10,7 @@ import {
   VersionedTextDocumentIdentifier,
   TextDocumentContentChangeEvent,
 } from 'vscode-languageserver-protocol';
-import { LspStartFailedError } from './errors.js';
+import { LspStartFailedError, LspTimeoutError } from './errors.js';
 import { log } from './logger.js';
 import { Config } from './config.js';
 
@@ -248,7 +248,12 @@ export class MoveLspClient {
       setTimeout(() => {
         if (this.pendingRequests.has(id)) {
           this.pendingRequests.delete(id);
-          reject(new Error(`LSP request timeout: ${method}`));
+          log('warn', 'LSP request timed out', {
+            event: 'lsp_timeout',
+            method,
+            timeoutMs: this.config.moveLspTimeoutMs,
+          });
+          reject(new LspTimeoutError(method, this.config.moveLspTimeoutMs));
         }
       }, this.config.moveLspTimeoutMs);
     });
@@ -339,11 +344,12 @@ export class MoveLspClient {
     this.pendingRequests.clear();
 
     if (code !== 0 && this.restartCount < this.config.moveLspMaxRestarts) {
-      log('warn', 'LSP process crashed, attempting restart', {
-        code,
-        restartCount: this.restartCount,
-      });
       this.restartCount++;
+      log('warn', 'LSP process crashed, attempting restart', {
+        event: 'lsp_restart_attempt',
+        restartCount: this.restartCount,
+        reason: `Process exited with code ${code}`,
+      });
       // Note: Restart logic would be implemented by the server
     }
   }
