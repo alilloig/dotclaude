@@ -175,6 +175,67 @@ Skipped when move-analyzer binary not available. Tests cover:
 - `test/integration/recovery.test.ts` - New test file
 - `vitest.config.ts` - Allow unhandled rejections in timeout tests
 
+## Iteration 2 Fixes
+
+Based on evaluator feedback, the following issues were addressed:
+
+### Fix 1: Test Gap - Crash Rejection (Criterion 12)
+
+**Problem**: The test `should reject all pending requests with LSP_CRASHED on unexpected exit` did not actually verify pending request rejection. It only checked `isReady()` and `getConsecutiveCrashes()` after crash.
+
+**Fix**: Updated the test to:
+1. Start client and complete initialization
+2. Create a pending hover request (without sending response)
+3. Simulate process crash
+4. Verify the pending request rejects with `LSP_CRASHED` error code
+
+```typescript
+// Create a pending request (hover) - don't send response
+const hoverPromise = client.hover('file:///test.move', 0, 0);
+await vi.advanceTimersByTimeAsync(10);
+
+// Simulate process crash before response arrives
+mockProcess.emit('exit', 1, 'SIGSEGV');
+
+// Verify the pending request rejects with LSP_CRASHED
+await expect(hoverPromise).rejects.toMatchObject({
+  code: LSP_CRASHED,
+});
+```
+
+### Fix 2: Missing workspaceRoot in Error Responses (Criterion 9)
+
+**Problem**: The contract specified degraded mode errors should include `workspaceRoot` field, but implementation only returned `{ error: { code, message, details } }`.
+
+**Fix**: Updated error handler in `server.ts` to include `workspaceRoot` in error responses:
+- Try to resolve workspace from `filePath` argument
+- If resolution fails, use `null`
+- Error response now includes: `{ workspaceRoot: string | null, error: { code, message, details } }`
+
+```typescript
+// Try to resolve workspaceRoot from filePath for error response consistency
+let errorWorkspaceRoot: string | null = null;
+try {
+  const filePath = args?.filePath;
+  if (filePath && typeof filePath === 'string') {
+    errorWorkspaceRoot = workspaceResolver.resolve(resolve(filePath));
+  }
+} catch {
+  // Workspace resolution failed - leave as null
+}
+
+return {
+  content: [{
+    type: 'text',
+    text: JSON.stringify({
+      workspaceRoot: errorWorkspaceRoot,
+      error: { code, message, details },
+    }, null, 2),
+  }],
+  isError: true,
+};
+```
+
 ## Notes
 
 - The `dangerouslyIgnoreUnhandledErrors: true` config in vitest allows expected promise rejections during timeout testing with fake timers

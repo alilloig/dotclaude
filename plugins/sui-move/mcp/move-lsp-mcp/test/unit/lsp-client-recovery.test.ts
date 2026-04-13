@@ -12,6 +12,7 @@ import {
   LSP_TIMEOUT,
   LSP_PROTOCOL_ERROR,
   LSP_START_FAILED,
+  LSP_CRASHED,
 } from '../../src/errors.js';
 
 // Mock logger to avoid noise
@@ -115,8 +116,19 @@ describe('MoveLspClient Error Handling', () => {
 
       expect(client.isReady()).toBe(true);
 
-      // Simulate process crash
+      // Create a pending request (hover) - don't send response
+      const hoverPromise = client.hover('file:///test.move', 0, 0);
+
+      // Give time for the request to be sent
+      await vi.advanceTimersByTimeAsync(10);
+
+      // Simulate process crash before response arrives
       mockProcess.emit('exit', 1, 'SIGSEGV');
+
+      // Verify the pending request rejects with LSP_CRASHED
+      await expect(hoverPromise).rejects.toMatchObject({
+        code: LSP_CRASHED,
+      });
 
       expect(client.isReady()).toBe(false);
       expect(client.getConsecutiveCrashes()).toBe(1);

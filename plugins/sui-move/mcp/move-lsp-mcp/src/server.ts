@@ -629,11 +629,23 @@ export function createServer(): Server {
       log('error', `Tool ${name} failed`, { error, args });
 
       if (error instanceof MoveLspError) {
+        // Try to resolve workspaceRoot from filePath for error response consistency
+        let errorWorkspaceRoot: string | null = null;
+        try {
+          const filePath = args?.filePath;
+          if (filePath && typeof filePath === 'string') {
+            errorWorkspaceRoot = workspaceResolver.resolve(resolve(filePath));
+          }
+        } catch {
+          // Workspace resolution failed - leave as null
+        }
+
         return {
           content: [
             {
               type: 'text',
               text: JSON.stringify({
+                workspaceRoot: errorWorkspaceRoot,
                 error: {
                   code: error.code,
                   message: error.message,
