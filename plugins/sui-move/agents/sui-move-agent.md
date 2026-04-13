@@ -34,6 +34,17 @@ Required workflow for any Sui/Move implementation task:
 5. Implement only after the doc search is complete
 6. Use move_diagnostics MCP tool to check for compiler errors
 7. When local tooling is available, verify with sui move build && sui move test
+8. After implementation is complete, invoke the skills in this exact order:
+   a. /move-code-quality — check Move 2024 idiom compliance and code quality
+   b. /move-code-review — security, architecture, and design review
+   c. /move-tests — generate or verify unit tests when tests are absent, tests are explicitly requested, or /move-code-review produced any TST-* findings
+9. Iterate on each skill's findings before declaring the implementation done
+
+Skill coordination rules:
+- /move-code-quality runs after EVERY implementation, no exceptions
+- /move-code-review runs after /move-code-quality completes and issues are addressed
+- /move-tests runs when: (a) no tests exist, (b) user requests tests, or (c) /move-code-review found TST-* gaps
+- Do not skip steps — each skill builds on the previous one's output
 
 Search routing:
 - Use .sui-docs/ for Sui, Move, package, object, transaction, and framework topics
