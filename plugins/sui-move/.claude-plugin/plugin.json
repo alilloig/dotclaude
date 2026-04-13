@@ -14,10 +14,10 @@
     "diagnostics"
   ],
   "commands": [
-    {
-      "name": "sui-move",
-      "description": "Sui Move development assistant"
-    }
+    "./commands/sui-move.md",
+    "./commands/move-code-quality.md",
+    "./commands/move-code-review.md",
+    "./commands/move-tests.md"
   ],
   "skills": "skills/",
   "agents": [
