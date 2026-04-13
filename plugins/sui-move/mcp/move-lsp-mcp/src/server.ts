@@ -175,8 +175,24 @@ export function createServer(): Server {
    * Handles restart recovery by reopening cached documents
    */
   async function initializeLspClient(workspaceRoot: string): Promise<void> {
-    // If client is healthy and ready, nothing to do
-    if (lspClient?.isReady()) return;
+    // If client is healthy and ready, check workspace matches
+    if (lspClient?.isReady()) {
+      const currentWorkspace = lspClient.getWorkspaceRoot();
+      if (currentWorkspace === workspaceRoot) {
+        return; // Same workspace, nothing to do
+      }
+      // Different workspace - need to restart for new workspace
+      log('info', 'Restarting LSP client for different workspace', {
+        event: 'lsp_workspace_switch',
+        previousWorkspace: currentWorkspace,
+        newWorkspace: workspaceRoot,
+      });
+      try {
+        await lspClient.shutdown();
+      } catch (err) {
+        log('warn', 'Error shutting down client for workspace switch', { error: err });
+      }
+    }
 
     // Check if we need to restart an unhealthy client
     if (lspClient?.needsRestart()) {
@@ -212,8 +228,7 @@ export function createServer(): Server {
 
     // Restore consecutive crash count for continuity
     if (previousCrashes > 0) {
-      // The start() method will increment if it fails, so we don't need to set it manually
-      // but we log the recovery attempt context
+      lspClient.setConsecutiveCrashes(previousCrashes);
       log('info', 'Attempting restart after crashes', {
         previousCrashes,
         maxRestarts: config.moveLspMaxRestarts,

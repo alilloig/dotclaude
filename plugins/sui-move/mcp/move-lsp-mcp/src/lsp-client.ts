@@ -146,6 +146,13 @@ export class MoveLspClient {
   }
 
   /**
+   * Set consecutive crash count (for restoring state after client recreation)
+   */
+  setConsecutiveCrashes(count: number): void {
+    this.consecutiveCrashes = count;
+  }
+
+  /**
    * Reset hard failed state (for testing)
    */
   resetHardFailed(): void {
@@ -483,7 +490,7 @@ export class MoveLspClient {
   /**
    * Open a document in the LSP server
    */
-  async didOpen(uri: string, content: string, languageId = 'move'): Promise<void> {
+  async didOpen(uri: string, content: string, languageId = 'move', version = 1): Promise<void> {
     if (!this.isInitialized) {
       throw new Error('LSP client not initialized');
     }
@@ -492,7 +499,7 @@ export class MoveLspClient {
       textDocument: {
         uri,
         languageId,
-        version: 1,
+        version,
         text: content,
       } as TextDocumentItem,
     };
@@ -762,7 +769,7 @@ export class MoveLspClient {
 
     for (const doc of documents) {
       // Use incremented version to ensure LSP sees fresh document
-      await this.didOpen(doc.uri, doc.content, 'move');
+      await this.didOpen(doc.uri, doc.content, 'move', doc.version);
       log('debug', 'Reopened document after restart', { uri: doc.uri, version: doc.version });
     }
   }
