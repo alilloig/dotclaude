@@ -4,6 +4,28 @@
 import { TextDocumentContentChangeEvent } from 'vscode-languageserver-protocol';
 import { Config } from './config.js';
 /**
+ * Diagnostic from LSP publishDiagnostics notification
+ */
+export interface LspDiagnostic {
+    uri: string;
+    diagnostics: Array<{
+        range: {
+            start: {
+                line: number;
+                character: number;
+            };
+            end: {
+                line: number;
+                character: number;
+            };
+        };
+        severity?: number;
+        code?: string | number;
+        source?: string;
+        message: string;
+    }>;
+}
+/**
  * LSP Client for move-analyzer
  */
 export declare class MoveLspClient {
@@ -14,7 +36,20 @@ export declare class MoveLspClient {
     private pendingRequests;
     private isInitialized;
     private restartCount;
+    private diagnosticsStore;
     constructor(binaryPath: string, config: Config);
+    /**
+     * Get cached diagnostics for a URI
+     */
+    getDiagnostics(uri: string): LspDiagnostic['diagnostics'];
+    /**
+     * Get all cached diagnostics
+     */
+    getAllDiagnostics(): Map<string, LspDiagnostic['diagnostics']>;
+    /**
+     * Clear diagnostics for a URI
+     */
+    clearDiagnostics(uri?: string): void;
     /**
      * Start the LSP server process
      */

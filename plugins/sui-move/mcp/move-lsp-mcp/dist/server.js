@@ -10,6 +10,16 @@ import { discoverBinary, getBinaryVersion } from './binary-discovery.js';
 import { parseConfig, validateConfig } from './config.js';
 import { log, setLogLevel, info, error } from './logger.js';
 import { BinaryNotFoundError, NoWorkspaceError, MoveLspError, INVALID_FILE_PATH, FILE_NOT_FOUND, NO_WORKSPACE, } from './errors.js';
+// LSP diagnostic severity to string mapping
+function severityToString(severity) {
+    switch (severity) {
+        case 1: return 'error';
+        case 2: return 'warning';
+        case 3: return 'information';
+        case 4: return 'hint';
+        default: return 'error';
+    }
+}
 // Module-level state for binary discovery (shared across server instances)
 let globalBinaryPath = null;
 let globalConfig = null;
@@ -127,18 +137,36 @@ export function createServer() {
         // Read file content if not provided
         const fileContent = content || readFileSync(resolvedPath, 'utf8');
         const fileUri = `file://${resolvedPath}`;
-        // Open document in LSP server
+        // Open document in LSP server - this triggers diagnostics
         await lspClient.didOpen(fileUri, fileContent);
-        // For now, return basic structure
-        // In a full implementation, we would collect diagnostics from LSP notifications
+        // Wait briefly for LSP server to process and send diagnostics
+        // publishDiagnostics is async and may arrive after didOpen returns
+        await new Promise(resolve => setTimeout(resolve, 500));
+        // Retrieve diagnostics from LSP client cache
+        const lspDiagnostics = lspClient.getDiagnostics(fileUri);
+        // Transform LSP diagnostics to our output format
+        const diagnostics = lspDiagnostics.map(d => ({
+            filePath: resolvedPath,
+            range: {
+                startLine: d.range.start.line,
+                startCharacter: d.range.start.character,
+                endLine: d.range.end.line,
+                endCharacter: d.range.end.character,
+            },
+            severity: severityToString(d.severity ?? 1),
+            message: d.message,
+            source: d.source ?? 'move-analyzer',
+            code: d.code ?? null,
+        }));
         const result = {
             workspaceRoot,
-            diagnostics: [],
+            diagnostics,
         };
         log('info', 'Diagnostics request completed', {
             filePath: resolvedPath,
             workspaceRoot,
             scope: scope || 'file',
+            diagnosticsCount: diagnostics.length,
         });
         return result;
     }

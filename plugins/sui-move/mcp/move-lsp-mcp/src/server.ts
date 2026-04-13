@@ -23,21 +23,34 @@ import {
 } from './errors.js';
 
 /**
- * Diagnostic result from move-analyzer
+ * Diagnostic result from move-analyzer (matches spec output schema)
  */
 interface DiagnosticResult {
   workspaceRoot: string;
   diagnostics: Array<{
-    uri: string;
+    filePath: string;
     range: {
-      start: { line: number; character: number };
-      end: { line: number; character: number };
+      startLine: number;
+      startCharacter: number;
+      endLine: number;
+      endCharacter: number;
     };
-    severity: number;
+    severity: 'error' | 'warning' | 'information' | 'hint';
     message: string;
-    source?: string;
-    code?: string | number;
+    source: string;
+    code: string | number | null;
   }>;
+}
+
+// LSP diagnostic severity to string mapping
+function severityToString(severity: number): 'error' | 'warning' | 'information' | 'hint' {
+  switch (severity) {
+    case 1: return 'error';
+    case 2: return 'warning';
+    case 3: return 'information';
+    case 4: return 'hint';
+    default: return 'error';
+  }
 }
 
 // Module-level state for binary discovery (shared across server instances)
@@ -176,20 +189,41 @@ export function createServer(): Server {
     const fileContent = content || readFileSync(resolvedPath, 'utf8');
     const fileUri = `file://${resolvedPath}`;
 
-    // Open document in LSP server
+    // Open document in LSP server - this triggers diagnostics
     await lspClient.didOpen(fileUri, fileContent);
 
-    // For now, return basic structure
-    // In a full implementation, we would collect diagnostics from LSP notifications
+    // Wait briefly for LSP server to process and send diagnostics
+    // publishDiagnostics is async and may arrive after didOpen returns
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    // Retrieve diagnostics from LSP client cache
+    const lspDiagnostics = lspClient.getDiagnostics(fileUri);
+
+    // Transform LSP diagnostics to our output format
+    const diagnostics = lspDiagnostics.map(d => ({
+      filePath: resolvedPath,
+      range: {
+        startLine: d.range.start.line,
+        startCharacter: d.range.start.character,
+        endLine: d.range.end.line,
+        endCharacter: d.range.end.character,
+      },
+      severity: severityToString(d.severity ?? 1),
+      message: d.message,
+      source: d.source ?? 'move-analyzer',
+      code: d.code ?? null,
+    }));
+
     const result: DiagnosticResult = {
       workspaceRoot,
-      diagnostics: [],
+      diagnostics,
     };
 
     log('info', 'Diagnostics request completed', {
       filePath: resolvedPath,
       workspaceRoot,
       scope: scope || 'file',
+      diagnosticsCount: diagnostics.length,
     });
 
     return result;

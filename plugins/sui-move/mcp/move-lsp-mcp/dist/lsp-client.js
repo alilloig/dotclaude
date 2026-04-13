@@ -15,9 +15,33 @@ export class MoveLspClient {
     pendingRequests = new Map();
     isInitialized = false;
     restartCount = 0;
+    diagnosticsStore = new Map();
     constructor(binaryPath, config) {
         this.binaryPath = binaryPath;
         this.config = config;
+    }
+    /**
+     * Get cached diagnostics for a URI
+     */
+    getDiagnostics(uri) {
+        return this.diagnosticsStore.get(uri) || [];
+    }
+    /**
+     * Get all cached diagnostics
+     */
+    getAllDiagnostics() {
+        return new Map(this.diagnosticsStore);
+    }
+    /**
+     * Clear diagnostics for a URI
+     */
+    clearDiagnostics(uri) {
+        if (uri) {
+            this.diagnosticsStore.delete(uri);
+        }
+        else {
+            this.diagnosticsStore.clear();
+        }
     }
     /**
      * Start the LSP server process
@@ -137,8 +161,10 @@ export class MoveLspClient {
             }
         }
         else if (message.method === 'textDocument/publishDiagnostics') {
-            // Diagnostic notification - we'll handle this in the server
-            log('debug', 'Received diagnostics', { diagnostics: message.params });
+            // Cache diagnostics from LSP server
+            const params = message.params;
+            this.diagnosticsStore.set(params.uri, params.diagnostics);
+            log('debug', 'Received diagnostics', { uri: params.uri, count: params.diagnostics.length });
         }
         else {
             log('debug', 'Unhandled LSP message', { message });

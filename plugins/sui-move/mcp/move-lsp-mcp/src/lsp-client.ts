@@ -24,6 +24,23 @@ interface PendingRequest<T = unknown> {
 }
 
 /**
+ * Diagnostic from LSP publishDiagnostics notification
+ */
+export interface LspDiagnostic {
+  uri: string;
+  diagnostics: Array<{
+    range: {
+      start: { line: number; character: number };
+      end: { line: number; character: number };
+    };
+    severity?: number;
+    code?: string | number;
+    source?: string;
+    message: string;
+  }>;
+}
+
+/**
  * LSP Client for move-analyzer
  */
 export class MoveLspClient {
@@ -32,11 +49,37 @@ export class MoveLspClient {
   private pendingRequests = new Map<number, PendingRequest<any>>();
   private isInitialized = false;
   private restartCount = 0;
+  private diagnosticsStore = new Map<string, LspDiagnostic['diagnostics']>();
 
   constructor(
     private readonly binaryPath: string,
     private readonly config: Config
   ) {}
+
+  /**
+   * Get cached diagnostics for a URI
+   */
+  getDiagnostics(uri: string): LspDiagnostic['diagnostics'] {
+    return this.diagnosticsStore.get(uri) || [];
+  }
+
+  /**
+   * Get all cached diagnostics
+   */
+  getAllDiagnostics(): Map<string, LspDiagnostic['diagnostics']> {
+    return new Map(this.diagnosticsStore);
+  }
+
+  /**
+   * Clear diagnostics for a URI
+   */
+  clearDiagnostics(uri?: string): void {
+    if (uri) {
+      this.diagnosticsStore.delete(uri);
+    } else {
+      this.diagnosticsStore.clear();
+    }
+  }
 
   /**
    * Start the LSP server process
@@ -176,8 +219,10 @@ export class MoveLspClient {
         pending.resolve(message.result);
       }
     } else if (message.method === 'textDocument/publishDiagnostics') {
-      // Diagnostic notification - we'll handle this in the server
-      log('debug', 'Received diagnostics', { diagnostics: message.params });
+      // Cache diagnostics from LSP server
+      const params = message.params as LspDiagnostic;
+      this.diagnosticsStore.set(params.uri, params.diagnostics);
+      log('debug', 'Received diagnostics', { uri: params.uri, count: params.diagnostics.length });
     } else {
       log('debug', 'Unhandled LSP message', { message });
     }
