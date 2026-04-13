@@ -10,13 +10,39 @@ import { discoverBinary, getBinaryVersion } from './binary-discovery.js';
 import { parseConfig, validateConfig } from './config.js';
 import { log, setLogLevel, info, error } from './logger.js';
 import { BinaryNotFoundError, NoWorkspaceError, MoveLspError, INVALID_FILE_PATH, FILE_NOT_FOUND, NO_WORKSPACE, } from './errors.js';
+// Module-level state for binary discovery (shared across server instances)
+let globalBinaryPath = null;
+let globalConfig = null;
+/**
+ * Initialize binary discovery on startup (called from index.ts)
+ * Logs version info to stderr in JSON format
+ */
+export async function initializeBinaryOnStartup() {
+    if (!globalConfig) {
+        globalConfig = parseConfig();
+        validateConfig(globalConfig);
+        setLogLevel(globalConfig.moveLspLogLevel);
+    }
+    if (globalBinaryPath)
+        return;
+    globalBinaryPath = discoverBinary(globalConfig.moveAnalyzerPath || undefined);
+    const version = getBinaryVersion(globalBinaryPath);
+    info('Move analyzer binary check', {
+        event: 'binary_version_check',
+        path: globalBinaryPath,
+        version
+    });
+}
 /**
  * Create and configure the MCP server
  */
 export function createServer() {
-    const config = parseConfig();
-    validateConfig(config);
-    setLogLevel(config.moveLspLogLevel);
+    if (!globalConfig) {
+        globalConfig = parseConfig();
+        validateConfig(globalConfig);
+        setLogLevel(globalConfig.moveLspLogLevel);
+    }
+    const config = globalConfig;
     const server = new Server({
         name: 'move-lsp-mcp',
         version: '0.1.0',
@@ -26,15 +52,14 @@ export function createServer() {
         },
     });
     let lspClient = null;
-    let binaryPath = null;
-    // Initialize binary discovery
+    // Initialize binary discovery (uses global state from startup)
     async function initializeBinary() {
-        if (binaryPath)
+        if (globalBinaryPath)
             return;
         try {
-            binaryPath = discoverBinary(config.moveAnalyzerPath || undefined);
-            const version = getBinaryVersion(binaryPath);
-            info('Move analyzer initialized', { path: binaryPath, version });
+            globalBinaryPath = discoverBinary(config.moveAnalyzerPath || undefined);
+            const version = getBinaryVersion(globalBinaryPath);
+            info('Move analyzer initialized', { path: globalBinaryPath, version });
         }
         catch (err) {
             if (err instanceof BinaryNotFoundError) {
@@ -66,10 +91,10 @@ export function createServer() {
         if (lspClient?.isReady())
             return;
         await initializeBinary();
-        if (!binaryPath) {
+        if (!globalBinaryPath) {
             throw new Error('Binary not initialized');
         }
-        lspClient = new MoveLspClient(binaryPath, config);
+        lspClient = new MoveLspClient(globalBinaryPath, config);
         await lspClient.start(workspaceRoot);
     }
     // Handle move_diagnostics tool

@@ -2,8 +2,8 @@
  * MCP Server entrypoint for Move LSP integration
  */
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { createServer } from './server.js';
-import { info, error } from './logger.js';
+import { createServer, initializeBinaryOnStartup } from './server.js';
+import { info, error, warn } from './logger.js';
 /**
  * Main entry point
  */
@@ -11,6 +11,14 @@ async function main() {
     try {
         info('Starting Move LSP MCP server');
         const server = createServer();
+        // Check for move-analyzer on startup (non-blocking)
+        try {
+            await initializeBinaryOnStartup();
+        }
+        catch (err) {
+            // Log but don't fail - server can still operate in degraded mode
+            warn('move-analyzer not available on startup - LSP tools will fail until binary is installed', { error: err });
+        }
         // Handle process signals
         const cleanup = async () => {
             info('Shutting down Move LSP MCP server');

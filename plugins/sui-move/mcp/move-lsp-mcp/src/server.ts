@@ -40,13 +40,42 @@ interface DiagnosticResult {
   }>;
 }
 
+// Module-level state for binary discovery (shared across server instances)
+let globalBinaryPath: string | null = null;
+let globalConfig: ReturnType<typeof parseConfig> | null = null;
+
+/**
+ * Initialize binary discovery on startup (called from index.ts)
+ * Logs version info to stderr in JSON format
+ */
+export async function initializeBinaryOnStartup(): Promise<void> {
+  if (!globalConfig) {
+    globalConfig = parseConfig();
+    validateConfig(globalConfig);
+    setLogLevel(globalConfig.moveLspLogLevel as any);
+  }
+
+  if (globalBinaryPath) return;
+
+  globalBinaryPath = discoverBinary(globalConfig.moveAnalyzerPath || undefined);
+  const version = getBinaryVersion(globalBinaryPath);
+  info('Move analyzer binary check', {
+    event: 'binary_version_check',
+    path: globalBinaryPath,
+    version
+  });
+}
+
 /**
  * Create and configure the MCP server
  */
 export function createServer(): Server {
-  const config = parseConfig();
-  validateConfig(config);
-  setLogLevel(config.moveLspLogLevel as any);
+  if (!globalConfig) {
+    globalConfig = parseConfig();
+    validateConfig(globalConfig);
+    setLogLevel(globalConfig.moveLspLogLevel as any);
+  }
+  const config = globalConfig;
 
   const server = new Server(
     {
@@ -61,16 +90,15 @@ export function createServer(): Server {
   );
 
   let lspClient: MoveLspClient | null = null;
-  let binaryPath: string | null = null;
 
-  // Initialize binary discovery
+  // Initialize binary discovery (uses global state from startup)
   async function initializeBinary(): Promise<void> {
-    if (binaryPath) return;
+    if (globalBinaryPath) return;
 
     try {
-      binaryPath = discoverBinary(config.moveAnalyzerPath || undefined);
-      const version = getBinaryVersion(binaryPath);
-      info('Move analyzer initialized', { path: binaryPath, version });
+      globalBinaryPath = discoverBinary(config.moveAnalyzerPath || undefined);
+      const version = getBinaryVersion(globalBinaryPath);
+      info('Move analyzer initialized', { path: globalBinaryPath, version });
     } catch (err) {
       if (err instanceof BinaryNotFoundError) {
         error('move-analyzer not found. Please install Sui and ensure move-analyzer is in PATH', {
@@ -104,11 +132,11 @@ export function createServer(): Server {
     if (lspClient?.isReady()) return;
 
     await initializeBinary();
-    if (!binaryPath) {
+    if (!globalBinaryPath) {
       throw new Error('Binary not initialized');
     }
 
-    lspClient = new MoveLspClient(binaryPath, config);
+    lspClient = new MoveLspClient(globalBinaryPath, config);
     await lspClient.start(workspaceRoot);
   }
 

@@ -4,8 +4,8 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    include: ['test/unit/**/*.test.ts'],
-    exclude: ['test/integration/**/*'],
+    include: ['test/**/*.test.ts'],
+    // Integration tests use test.runIf() to skip gracefully when move-analyzer unavailable
   },
   resolve: {
     extensionAlias: {
