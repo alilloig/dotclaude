@@ -14,6 +14,12 @@ import { join } from 'path';
 import { mkdirSync, writeFileSync, rmSync, existsSync } from 'fs';
 import { tmpdir } from 'os';
 
+// Response type for MCP tool calls
+interface ToolResponse {
+  content: Array<{ type: string; text: string }>;
+  isError?: boolean;
+}
+
 // Check if move-analyzer is available using execFileSync (safe, no shell)
 function checkBinarySync(): boolean {
   try {
@@ -96,6 +102,40 @@ describeWithBinary('E2E: Plugin Workflow', () => {
     });
   };
 
+  // Helper to call a tool and validate basic response structure
+  const callTool = async (
+    name: string,
+    args: Record<string, unknown>
+  ): Promise<{ text: string; parsed: unknown }> => {
+    const result = (await sendMessage('tools/call', {
+      name,
+      arguments: args,
+    })) as ToolResponse;
+
+    // Ensure no error flag
+    expect(result.isError).not.toBe(true);
+
+    // Validate content structure
+    expect(result.content).toBeDefined();
+    expect(result.content.length).toBeGreaterThan(0);
+    expect(result.content[0].type).toBe('text');
+    expect(result.content[0].text).toBeDefined();
+    expect(typeof result.content[0].text).toBe('string');
+    expect(result.content[0].text.length).toBeGreaterThan(0);
+
+    // Parse JSON content
+    const text = result.content[0].text;
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      // Some responses may not be JSON, that's ok
+      parsed = null;
+    }
+
+    return { text, parsed };
+  };
+
   beforeAll(async () => {
     // Create test workspace with Move.toml and a Move file
     testWorkspace = join(tmpdir(), `move-e2e-test-${Date.now()}`);
@@ -114,7 +154,7 @@ e2e_test = "0x0"
 `
     );
 
-    // Create a simple Move module
+    // Create a simple Move module with intentional patterns for testing
     writeFileSync(
       join(testWorkspace, 'sources', 'counter.move'),
       `module e2e_test::counter;
@@ -189,71 +229,91 @@ public fun increment(counter: &mut Counter) {
   it('should open document and get diagnostics', async () => {
     const filePath = join(testWorkspace, 'sources', 'counter.move');
 
-    const result = (await sendMessage('tools/call', {
-      name: 'move_diagnostics',
-      arguments: {
-        file_path: filePath,
-      },
-    })) as { content: Array<{ type: string; text: string }> };
+    // Use correct parameter name: filePath (camelCase)
+    const { text, parsed } = await callTool('move_diagnostics', {
+      filePath: filePath,
+    });
 
-    expect(result.content).toBeDefined();
-    expect(result.content.length).toBeGreaterThan(0);
-    expect(result.content[0].type).toBe('text');
+    // Response should be valid and contain workspace info
+    expect(text).toContain('workspaceRoot');
 
-    // The response should contain diagnostics info (may be empty for valid code)
-    const text = result.content[0].text;
-    expect(text).toBeDefined();
+    // If parsed, check structure
+    if (parsed && typeof parsed === 'object') {
+      const response = parsed as { workspaceRoot?: string; diagnostics?: unknown[] };
+      expect(response.workspaceRoot).toBeDefined();
+      // Diagnostics array should exist (may be empty for valid code)
+      expect(response.diagnostics).toBeDefined();
+    }
   });
 
   it('should provide hover information', async () => {
     const filePath = join(testWorkspace, 'sources', 'counter.move');
 
-    const result = (await sendMessage('tools/call', {
-      name: 'move_hover',
-      arguments: {
-        file_path: filePath,
-        line: 8, // line with 'counter.value'
-        character: 4, // 'counter' variable
-      },
-    })) as { content: Array<{ type: string; text: string }> };
+    // Use correct parameter names: filePath, line, character (camelCase)
+    const { text, parsed } = await callTool('move_hover', {
+      filePath: filePath,
+      line: 8, // line with 'counter.value' (0-indexed: line 7)
+      character: 4, // 'counter' variable
+    });
 
-    expect(result.content).toBeDefined();
-    expect(result.content.length).toBeGreaterThan(0);
-    expect(result.content[0].type).toBe('text');
+    // Response should contain hover info or indicate no hover
+    expect(text.length).toBeGreaterThan(0);
+
+    // If parsed, check structure
+    if (parsed && typeof parsed === 'object') {
+      const response = parsed as { hover?: { contents?: unknown } };
+      // Hover response should have contents if found
+      if (response.hover) {
+        expect(response.hover.contents).toBeDefined();
+      }
+    }
   });
 
   it('should provide completions', async () => {
     const filePath = join(testWorkspace, 'sources', 'counter.move');
 
-    const result = (await sendMessage('tools/call', {
-      name: 'move_completions',
-      arguments: {
-        file_path: filePath,
-        line: 8,
-        character: 12, // after 'counter.'
-      },
-    })) as { content: Array<{ type: string; text: string }> };
+    // Use correct parameter names
+    const { text, parsed } = await callTool('move_completions', {
+      filePath: filePath,
+      line: 8,
+      character: 12, // after 'counter.'
+    });
 
-    expect(result.content).toBeDefined();
-    expect(result.content.length).toBeGreaterThan(0);
-    expect(result.content[0].type).toBe('text');
+    // Response should exist
+    expect(text.length).toBeGreaterThan(0);
+
+    // If parsed, check structure
+    if (parsed && typeof parsed === 'object') {
+      const response = parsed as { completions?: unknown[] };
+      // Completions should be an array
+      if (response.completions) {
+        expect(Array.isArray(response.completions)).toBe(true);
+      }
+    }
   });
 
   it('should provide goto definition', async () => {
     const filePath = join(testWorkspace, 'sources', 'counter.move');
 
-    const result = (await sendMessage('tools/call', {
-      name: 'move_goto_definition',
-      arguments: {
-        file_path: filePath,
-        line: 8, // line with 'counter.value'
-        character: 4, // 'counter' parameter
-      },
-    })) as { content: Array<{ type: string; text: string }> };
+    // Use correct parameter names
+    const { text, parsed } = await callTool('move_goto_definition', {
+      filePath: filePath,
+      line: 8, // line with 'counter.value'
+      character: 4, // 'counter' parameter
+    });
 
-    expect(result.content).toBeDefined();
-    expect(result.content.length).toBeGreaterThan(0);
-    expect(result.content[0].type).toBe('text');
+    // Response should exist
+    expect(text.length).toBeGreaterThan(0);
+
+    // If parsed, check for definition location
+    if (parsed && typeof parsed === 'object') {
+      const response = parsed as { definition?: { uri?: string; range?: unknown } };
+      // Definition should have uri and range if found
+      if (response.definition) {
+        expect(response.definition.uri).toBeDefined();
+        expect(response.definition.range).toBeDefined();
+      }
+    }
   });
 
   it('should handle full workflow: open -> diagnostics -> hover -> completions -> goto', async () => {
@@ -261,34 +321,35 @@ public fun increment(counter: &mut Counter) {
     const filePath = join(testWorkspace, 'sources', 'counter.move');
 
     // Step 1: Get diagnostics (implicitly opens document)
-    const diagnostics = (await sendMessage('tools/call', {
-      name: 'move_diagnostics',
-      arguments: { file_path: filePath },
-    })) as { content: Array<{ type: string; text: string }> };
-    expect(diagnostics.content).toBeDefined();
+    const diagnosticsResult = await callTool('move_diagnostics', {
+      filePath: filePath,
+    });
+    expect(diagnosticsResult.text).toContain('workspaceRoot');
 
     // Step 2: Get hover
-    const hover = (await sendMessage('tools/call', {
-      name: 'move_hover',
-      arguments: { file_path: filePath, line: 3, character: 15 },
-    })) as { content: Array<{ type: string; text: string }> };
-    expect(hover.content).toBeDefined();
+    const hoverResult = await callTool('move_hover', {
+      filePath: filePath,
+      line: 3,
+      character: 15,
+    });
+    expect(hoverResult.text.length).toBeGreaterThan(0);
 
     // Step 3: Get completions
-    const completions = (await sendMessage('tools/call', {
-      name: 'move_completions',
-      arguments: { file_path: filePath, line: 8, character: 12 },
-    })) as { content: Array<{ type: string; text: string }> };
-    expect(completions.content).toBeDefined();
+    const completionsResult = await callTool('move_completions', {
+      filePath: filePath,
+      line: 8,
+      character: 12,
+    });
+    expect(completionsResult.text.length).toBeGreaterThan(0);
 
     // Step 4: Get goto definition
-    const gotoDef = (await sendMessage('tools/call', {
-      name: 'move_goto_definition',
-      arguments: { file_path: filePath, line: 8, character: 4 },
-    })) as { content: Array<{ type: string; text: string }> };
-    expect(gotoDef.content).toBeDefined();
+    const gotoResult = await callTool('move_goto_definition', {
+      filePath: filePath,
+      line: 8,
+      character: 4,
+    });
+    expect(gotoResult.text.length).toBeGreaterThan(0);
 
-    // All steps completed successfully
-    expect(true).toBe(true);
+    // All 4 steps completed without errors (isError !== true verified in callTool)
   });
 });

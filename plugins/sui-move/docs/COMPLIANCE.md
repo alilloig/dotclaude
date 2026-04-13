@@ -57,18 +57,15 @@ A non-compliant workflow **writes code before consulting documentation**.
 
 ### Example Non-Compliant Transcript
 
-```
-User: Implement a Counter module in Move 2024
+    User: Implement a Counter module in Move 2024
 
-Agent: I'll implement the Counter for you.
+    Agent: I'll implement the Counter for you.
 
-### Step 1 — Implementation (VIOLATION)
-```move
-module counter::counter {
-    // Code written without doc consultation
-}
-```
-```
+    ### Step 1 — Implementation (VIOLATION)
+
+    module counter::counter {
+        // Code written without doc consultation
+    }
 
 **Violation**: Code written before any doc lookup. The agent should have:
 1. Read docs/CLAUDE.md
