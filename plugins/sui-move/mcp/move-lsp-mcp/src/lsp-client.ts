@@ -10,7 +10,7 @@ import {
   VersionedTextDocumentIdentifier,
   TextDocumentContentChangeEvent,
 } from 'vscode-languageserver-protocol';
-import { LspStartFailedError, LspTimeoutError } from './errors.js';
+import { LspStartFailedError, LspTimeoutError, LspCrashedError, LspProtocolError } from './errors.js';
 import { log } from './logger.js';
 import { Config } from './config.js';
 
@@ -104,12 +104,12 @@ export class MoveLspClient {
       // Set up error handling
       this.process.on('error', (error) => {
         log('error', 'LSP process error', { error });
-        this.handleProcessExit(1);
+        this.handleProcessExit(1, null);
       });
 
       this.process.on('exit', (code, signal) => {
         log('info', 'LSP process exited', { code, signal });
-        this.handleProcessExit(code || 0);
+        this.handleProcessExit(code, signal);
       });
 
       // Set up message handling
@@ -198,7 +198,13 @@ export class MoveLspClient {
           const message = JSON.parse(messageContent);
           this.handleMessage(message);
         } catch (error) {
-          log('error', 'Failed to parse LSP message', { error, messageContent });
+          const protocolError = new LspProtocolError('Failed to parse JSON message', {
+            parseError: error,
+            messageContent: messageContent.substring(0, 200) // Truncate for logging
+          });
+          log('error', 'Failed to parse LSP message', { error: protocolError });
+          // Re-throw to surface the protocol error
+          throw protocolError;
         }
       }
     });
@@ -333,13 +339,16 @@ export class MoveLspClient {
   /**
    * Handle process exit
    */
-  private handleProcessExit(code: number): void {
+  private handleProcessExit(code: number | null, signal: string | null): void {
     this.process = null;
     this.isInitialized = false;
 
-    // Reject any pending requests
+    // Create LspCrashedError for pending request rejections
+    const crashedError = new LspCrashedError(code, signal);
+
+    // Reject any pending requests with the proper error type
     for (const [, pending] of this.pendingRequests) {
-      pending.reject(new Error('LSP process exited'));
+      pending.reject(crashedError);
     }
     this.pendingRequests.clear();
 
@@ -348,7 +357,7 @@ export class MoveLspClient {
       log('warn', 'LSP process crashed, attempting restart', {
         event: 'lsp_restart_attempt',
         restartCount: this.restartCount,
-        reason: `Process exited with code ${code}`,
+        reason: `Process exited with code ${code}${signal ? ` (signal: ${signal})` : ''}`,
       });
       // Note: Restart logic would be implemented by the server
     }

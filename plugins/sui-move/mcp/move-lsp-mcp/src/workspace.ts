@@ -28,8 +28,10 @@ interface CacheEntry {
 /**
  * Workspace resolver with LRU caching
  * Resolves file paths to their Move workspace root (directory containing Move.toml)
+ * Caches by workspace root (not file path) per the contract: "max 3 workspace roots"
  */
 export class WorkspaceResolver {
+  // Cache maps workspace root -> access metadata (LRU cache of workspace roots)
   private cache = new Map<string, CacheEntry>();
   private accessCounter = 0;
   private hits = 0;
@@ -45,22 +47,24 @@ export class WorkspaceResolver {
   resolve(filePath: string): string {
     const resolvedPath = resolve(filePath);
 
-    // Check cache first
-    const cached = this.cache.get(resolvedPath);
+    // First, find the workspace root for this file
+    const workspaceRoot = this.findWorkspaceRoot(resolvedPath);
+
+    // Check if this workspace root is already cached
+    const cached = this.cache.get(workspaceRoot);
     if (cached) {
       this.hits++;
       cached.lastAccess = ++this.accessCounter;
       log('debug', 'Workspace cache hit', {
         event: 'workspace_cache_hit',
         filePath: resolvedPath,
-        workspaceRoot: cached.workspaceRoot,
+        workspaceRoot,
       });
-      return cached.workspaceRoot;
+      return workspaceRoot;
     }
 
-    // Cache miss - find workspace root
+    // Cache miss - this is a new workspace root
     this.misses++;
-    const workspaceRoot = this.findWorkspaceRoot(resolvedPath);
 
     log('debug', 'Workspace cache miss', {
       event: 'workspace_cache_miss',
@@ -73,8 +77,8 @@ export class WorkspaceResolver {
       this.evictLRU();
     }
 
-    // Store in cache
-    this.cache.set(resolvedPath, {
+    // Store workspace root in cache (keyed by workspace root, not file path)
+    this.cache.set(workspaceRoot, {
       workspaceRoot,
       lastAccess: ++this.accessCounter,
     });

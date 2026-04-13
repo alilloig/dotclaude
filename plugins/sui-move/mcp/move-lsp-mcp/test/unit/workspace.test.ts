@@ -22,6 +22,12 @@ describe('WorkspaceResolver', () => {
   const simplePackage = join(fixturesDir, 'simple-package');
   const exampleMove = join(simplePackage, 'sources/example.move');
 
+  // Multiple workspace fixtures for LRU testing
+  const workspaceA = join(fixturesDir, 'workspace-a');
+  const workspaceB = join(fixturesDir, 'workspace-b');
+  const workspaceC = join(fixturesDir, 'workspace-c');
+  const workspaceD = join(fixturesDir, 'workspace-d');
+
   beforeEach(() => {
     resolver = new WorkspaceResolver();
   });
@@ -80,58 +86,74 @@ describe('WorkspaceResolver', () => {
       // Create resolver with max size 3 (default)
       const lruResolver = new WorkspaceResolver(3);
 
-      // Mock filesystem for this test to create 4 distinct "workspaces"
-      // We'll use the actual fixture path but with different file names
-      // The cache key is the full resolved file path
+      // Use files from DIFFERENT workspaces to test LRU eviction
+      // Cache is keyed by workspace root, not file path
+      const pathA = join(workspaceA, 'sources/module.move');
+      const pathB = join(workspaceB, 'sources/module.move');
+      const pathC = join(workspaceC, 'sources/module.move');
+      const pathD = join(workspaceD, 'sources/module.move');
 
-      const path1 = join(simplePackage, 'sources/file1.move');
-      const path2 = join(simplePackage, 'sources/file2.move');
-      const path3 = join(simplePackage, 'sources/file3.move');
-      const path4 = join(simplePackage, 'sources/file4.move');
-
-      // Access paths 1, 2, 3 (fills cache)
-      lruResolver.resolve(path1);
-      lruResolver.resolve(path2);
-      lruResolver.resolve(path3);
+      // Access workspaces A, B, C (fills cache with 3 workspace roots)
+      lruResolver.resolve(pathA);
+      lruResolver.resolve(pathB);
+      lruResolver.resolve(pathC);
 
       expect(lruResolver.getCacheStats().size).toBe(3);
 
-      // Access path 4 - should evict path1 (LRU)
-      lruResolver.resolve(path4);
+      // Access workspace D - should evict workspace A (LRU)
+      lruResolver.resolve(pathD);
 
       expect(lruResolver.getCacheStats().size).toBe(3);
       expect(lruResolver.getCacheStats().misses).toBe(4);
 
-      // Access path1 again - should be a cache miss (was evicted)
-      lruResolver.resolve(path1);
+      // Access workspace A again - should be a cache miss (was evicted)
+      lruResolver.resolve(pathA);
       expect(lruResolver.getCacheStats().misses).toBe(5);
     });
 
     test('should preserve recently accessed entries during eviction', () => {
       const lruResolver = new WorkspaceResolver(3);
 
-      const path1 = join(simplePackage, 'sources/file1.move');
-      const path2 = join(simplePackage, 'sources/file2.move');
-      const path3 = join(simplePackage, 'sources/file3.move');
-      const path4 = join(simplePackage, 'sources/file4.move');
+      const pathA = join(workspaceA, 'sources/module.move');
+      const pathB = join(workspaceB, 'sources/module.move');
+      const pathC = join(workspaceC, 'sources/module.move');
+      const pathD = join(workspaceD, 'sources/module.move');
 
-      // Fill cache
-      lruResolver.resolve(path1); // access order: 1
-      lruResolver.resolve(path2); // access order: 2
-      lruResolver.resolve(path3); // access order: 3
+      // Fill cache with 3 workspace roots
+      lruResolver.resolve(pathA); // access order: 1
+      lruResolver.resolve(pathB); // access order: 2
+      lruResolver.resolve(pathC); // access order: 3
 
-      // Access path1 again to make it most recent
-      lruResolver.resolve(path1); // access order: 4 (hit)
+      // Access workspace A again to make it most recent
+      lruResolver.resolve(pathA); // access order: 4 (hit)
 
-      // Now add path4 - should evict path2 (now the LRU)
-      lruResolver.resolve(path4);
+      // Now add workspace D - should evict workspace B (now the LRU)
+      lruResolver.resolve(pathD);
 
-      // path1 should still be in cache (hit)
+      // workspace A should still be in cache (hit)
       const beforeStats = lruResolver.getCacheStats();
-      lruResolver.resolve(path1);
+      lruResolver.resolve(pathA);
       const afterStats = lruResolver.getCacheStats();
 
       expect(afterStats.hits).toBe(beforeStats.hits + 1);
+    });
+
+    test('should count multiple files from same workspace as one cache entry', () => {
+      const lruResolver = new WorkspaceResolver(3);
+
+      // Multiple files from the same workspace should result in ONE cache entry
+      const file1 = join(simplePackage, 'sources/example.move');
+      const file2 = join(simplePackage, 'sources/other.move');
+      const file3 = join(simplePackage, 'sources/another.move');
+
+      lruResolver.resolve(file1);
+      lruResolver.resolve(file2);
+      lruResolver.resolve(file3);
+
+      // All files from same workspace = 1 cache entry, but first is miss, rest are hits
+      expect(lruResolver.getCacheStats().size).toBe(1);
+      expect(lruResolver.getCacheStats().misses).toBe(1);
+      expect(lruResolver.getCacheStats().hits).toBe(2);
     });
   });
 

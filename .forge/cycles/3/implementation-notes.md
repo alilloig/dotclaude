@@ -124,3 +124,65 @@ All 58 tests pass. Integration tests skip gracefully when move-analyzer unavaila
   - `src/lsp-client.ts` - added structured logging, use LspTimeoutError
   - `src/server.ts` - use WorkspaceResolver instead of inline function
   - `plugins/sui-move/docs/VERSION.json` - updated schema
+
+## Iteration 2 Fixes
+
+Codex review identified 5 critical issues where code was implemented but not integrated. All fixed:
+
+### Fix 1: DocumentStore Integration in server.ts
+**Problem**: DocumentStore existed but was never used. Diagnostics always called `didOpen()` with version 1.
+
+**Fix**: 
+- Import and instantiate DocumentStore in createServer()
+- Track open documents in handleMoveDiagnostics()
+- On re-request for same file, use `didChange()` with incremented version instead of `didOpen()`
+
+### Fix 2: Workspace Cache Keys by Root, Not File
+**Problem**: Cache keyed by file path. Multiple files from same workspace consumed multiple cache slots.
+
+**Fix**:
+- Changed WorkspaceResolver to cache by workspace root
+- Now correctly uses "max 3 workspace roots" per contract
+- Updated tests with multiple workspace fixtures (workspace-a, workspace-b, workspace-c, workspace-d)
+- Added test verifying multiple files from same workspace = 1 cache entry
+
+### Fix 3: VERSION.json Compatibility Check at Startup
+**Problem**: `checkVersionCompatibility()` existed but was never called.
+
+**Fix**:
+- Import checkVersionCompatibility in server.ts
+- Call it in `initializeBinaryOnStartup()` at server start
+- Log warning if version mismatch detected
+
+### Fix 4: Error Classes Wired Up in lsp-client.ts
+**Problem**: LspCrashedError, LspProtocolError exported but never used.
+
+**Fix**:
+- Use LspCrashedError on process exit (handleProcessExit)
+- Use LspProtocolError on JSON parse failure (setupMessageHandling)
+- Updated handleProcessExit signature to accept signal parameter
+
+### Fix 5: Integration Tests Actually Run
+**Problem**: `test.runIf(binaryAvailable)` evaluated at definition time before beforeAll runs. Tests never ran.
+
+**Fix**:
+- Check binary synchronously at module load time with `checkBinarySync()`
+- Set `binaryAvailable` const at module level
+- Now `test.runIf()` correctly evaluates to true when move-analyzer is available
+
+## Files Changed (Iteration 2)
+
+- **Created:**
+  - `test/fixtures/workspace-{a,b,c,d}/Move.toml` - test workspaces for LRU testing
+  - `test/fixtures/workspace-{a,b,c,d}/sources/module.move` - dummy Move files
+
+- **Modified:**
+  - `src/server.ts` - DocumentStore + version check integration
+  - `src/workspace.ts` - cache by workspace root
+  - `src/lsp-client.ts` - use LspCrashedError/LspProtocolError
+  - `test/unit/workspace.test.ts` - updated for workspace-root caching
+  - `test/integration/diagnostics.test.ts` - sync binary check
+
+## Test Results
+- 59 unit tests pass
+- 5 integration tests skip gracefully (move-analyzer not installed)

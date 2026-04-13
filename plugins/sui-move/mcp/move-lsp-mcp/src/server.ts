@@ -14,6 +14,8 @@ import { discoverBinary, getBinaryVersion } from './binary-discovery.js';
 import { parseConfig, validateConfig } from './config.js';
 import { log, setLogLevel, info, error } from './logger.js';
 import { WorkspaceResolver } from './workspace.js';
+import { DocumentStore } from './document-store.js';
+import { checkVersionCompatibility } from './version.js';
 import {
   BinaryNotFoundError,
   NoWorkspaceError,
@@ -69,6 +71,13 @@ export async function initializeBinaryOnStartup(): Promise<void> {
     setLogLevel(globalConfig.moveLspLogLevel as any);
   }
 
+  // Check VERSION.json compatibility at startup
+  const versionJsonPath = resolve(__dirname, '../../docs/VERSION.json');
+  const compatibility = checkVersionCompatibility(versionJsonPath);
+  if (!compatibility.compatible && compatibility.warning) {
+    log('warn', compatibility.warning, { event: 'version_check' });
+  }
+
   if (globalBinaryPath) return;
 
   globalBinaryPath = discoverBinary(globalConfig.moveAnalyzerPath || undefined);
@@ -105,6 +114,7 @@ export function createServer(): Server {
 
   let lspClient: MoveLspClient | null = null;
   const workspaceResolver = new WorkspaceResolver();
+  const documentStore = new DocumentStore();
 
   // Initialize binary discovery (uses global state from startup)
   async function initializeBinary(): Promise<void> {
@@ -174,8 +184,18 @@ export function createServer(): Server {
     const fileContent = content || readFileSync(resolvedPath, 'utf8');
     const fileUri = `file://${resolvedPath}`;
 
-    // Open document in LSP server - this triggers diagnostics
-    await lspClient.didOpen(fileUri, fileContent);
+    // Track document state and use appropriate LSP notification
+    const existingDoc = documentStore.get(fileUri);
+    if (existingDoc) {
+      // Document already open - use didChange with incremented version
+      const newVersion = existingDoc.version + 1;
+      documentStore.didChange(fileUri, fileContent, newVersion);
+      await lspClient.didChange(fileUri, newVersion, [{ text: fileContent }]);
+    } else {
+      // New document - use didOpen
+      documentStore.didOpen(fileUri, fileContent, 1);
+      await lspClient.didOpen(fileUri, fileContent);
+    }
 
     // Wait briefly for LSP server to process and send diagnostics
     // publishDiagnostics is async and may arrive after didOpen returns

@@ -11,25 +11,28 @@ import { BinaryNotFoundError } from '../../src/errors.js';
 // Mock logger to avoid noise during tests
 vi.mock('../../src/logger.js');
 
+// Check for binary SYNCHRONOUSLY at module load time
+// This is required because test.runIf() evaluates its condition at definition time
+function checkBinarySync(): boolean {
+  try {
+    discoverBinary();
+    return true;
+  } catch (error) {
+    if (error instanceof BinaryNotFoundError) {
+      console.warn('move-analyzer not found, skipping integration tests');
+      return false;
+    }
+    throw error;
+  }
+}
+
+const binaryAvailable = checkBinarySync();
+
 describe('diagnostics integration', () => {
   const testFixturePath = resolve(__dirname, '../fixtures/simple-package/sources/example.move');
   let server: ReturnType<typeof createServer>;
-  let binaryAvailable = false;
 
   beforeAll(async () => {
-    // Check if move-analyzer is available
-    try {
-      discoverBinary();
-      binaryAvailable = true;
-    } catch (error) {
-      if (error instanceof BinaryNotFoundError) {
-        console.warn('move-analyzer not found, skipping integration tests');
-        binaryAvailable = false;
-      } else {
-        throw error;
-      }
-    }
-
     if (binaryAvailable) {
       server = createServer();
     }
