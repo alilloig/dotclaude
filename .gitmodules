@@ -1,9 +1,9 @@
 [submodule "skills/move-code-quality"]
 	path = skills/move-code-quality
 	url = https://github.com/1NickPappas/move-code-quality-skill
-[submodule "sui-pilot"]
-	path = sui-pilot
-	url = git@github.com:alilloig/sui-pilot.git
 [submodule "skills/move-code-review"]
 	path = skills/move-code-review
 	url = git@github.com:MystenLabs/move-code-review-skill.git
+[submodule "plugins/sui-pilot"]
+	path = plugins/sui-pilot
+	url = git@github.com:alilloig/sui-pilot.git

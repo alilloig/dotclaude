@@ -1,7 +1,7 @@
 ---
-phase: "cycle"
-current_cycle: 1
-cycle_status: "dispatching"
+phase: "done"
+current_cycle: 6
+cycle_status: "complete"
 iteration: 0
 codex_thread_ids:
   prompt_refinement: "019d8663-b0f7-7690-845f-6ea9ba97281c"
