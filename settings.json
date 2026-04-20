@@ -9,9 +9,25 @@
       "Bash(claude team:*)",
       "Bash(claude:*)"
     ],
-    "defaultMode": "default"
+    "defaultMode": "auto"
   },
   "model": "claude-opus-4-5",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash /Users/alilloig/.claude/hooks/sui-network-gate.sh",
+            "if": "Bash(sui client:*)",
+            "timeout": 10,
+            "statusMessage": "Checking Sui network..."
+          }
+        ]
+      }
+    ]
+  },
   "statusLine": {
     "type": "command",
     "command": "bash /Users/alilloig/.claude/statusline-command.sh"
@@ -65,10 +81,32 @@
       "source": {
         "source": "directory",
         "path": "/Users/alilloig/workspace/claudefiles/plugins/local"
-      }
+      },
+      "autoUpdate": true
     }
   },
   "effortLevel": "high",
   "autoUpdatesChannel": "stable",
-  "skipDangerousModePermissionPrompt": true
+  "skipDangerousModePermissionPrompt": true,
+  "skipAutoPermissionPrompt": true,
+  "autoMode": {
+    "allow": [
+      "pnpm commands are safe — install, dev, build, test, lint, etc.",
+      "sui move build and sui move test are local-only, no gas cost",
+      "read-only sui client commands: object, gas, active-env, envs, active-address, balance, addresses",
+      "read-only git commands: status, log, diff, branch, show, stash list",
+      "npx and bunx for running local tools"
+    ],
+    "soft_deny": [
+      "git push — affects remote, always confirm",
+      "git reset --hard or git checkout -- — destructive, can lose work",
+      "rm -rf — destructive file deletion",
+      "sui client switch --env mainnet — switching to mainnet should be intentional"
+    ],
+    "environment": [
+      "Primary stack: TypeScript (pnpm), Sui Move (edition 2024), Next.js + React",
+      "Package manager is always pnpm, never npm or yarn",
+      "Sui on-chain operations (publish, call, upgrade, transfer) are gated by a PreToolUse hook that checks the active network"
+    ]
+  }
 }
