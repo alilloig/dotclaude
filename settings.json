@@ -5,7 +5,10 @@
     "CLAUDE_CODE_NO_FLICKER": "1"
   },
   "permissions": {
-    "allow": ["Bash(claude team:*)", "Bash(claude:*)"],
+    "allow": [
+      "Bash(claude team:*)",
+      "Bash(claude:*)"
+    ],
     "defaultMode": "default"
   },
   "model": "claude-opus-4-5",
@@ -48,7 +51,8 @@
     "code-forge-rig@local": true,
     "codex-bridge@local": true,
     "forge-bench@local": true,
-    "sui-wallet@local": true
+    "sui-wallet@local": true,
+    "sui-pilot@local": true
   },
   "extraKnownMarketplaces": {
     "impeccable": {

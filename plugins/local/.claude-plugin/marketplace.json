@@ -35,6 +35,12 @@
       "description": "Mock Sui wallet for browser-based dApp testing",
       "source": "./sui-wallet",
       "category": "development"
+    },
+    {
+      "name": "sui-pilot",
+      "description": "Sui Move development plugin with LSP integration, comprehensive documentation, and code quality tools",
+      "source": "./sui-pilot",
+      "category": "development"
     }
   ]
 }
