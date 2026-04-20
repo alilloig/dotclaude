@@ -1,13 +1,14 @@
 # Codex Bridge
 
-Bridge between Claude Code and OpenAI's Codex CLI via the Model Context Protocol (MCP). Ask Codex questions, get second opinions, or delegate subtasks — all without leaving Claude Code.
+Bridge between Claude Code and OpenAI's Codex CLI via the Model Context Protocol (MCP). Ask Codex questions, delegate subtasks, or use Codex to refine your planning prompts — all without leaving Claude Code.
 
 ## Features
 
-- **`/codex` command** — Send prompts to Codex directly from Claude Code
+- **`/codex` command** — Send prompts to Codex for execution
+- **`/claudex` command** — Use Codex to iteratively refine prompts, then enter plan mode
 - **Multi-turn sessions** — Maintain conversation context with Codex across multiple exchanges via `threadId`
 - **Read-only by default** — Codex runs in a sandboxed read-only mode; write access requires explicit opt-in
-- **Automatic skill triggering** — Claude Code recognizes when to invoke Codex based on natural language (e.g., "ask codex", "what would codex say")
+- **Automatic skill triggering** — Claude Code recognizes when to invoke Codex or Claudex based on natural language
 - **Zero custom server code** — Delegates entirely to the Codex CLI's built-in MCP server
 
 ## Prerequisites
@@ -51,6 +52,39 @@ Codex responses are presented as:
 >
 > The authentication flow works as follows...
 
+### Via `/claudex` command (plan-mode refinement)
+
+```
+/claudex Add user authentication with JWT tokens to the Express API
+```
+
+This triggers a multi-round Claude↔Codex refinement protocol:
+
+1. **Round 1**: Claude generates initial planning prompt (v1)
+2. **Round 2**: Codex critiques v1 and generates improved v2
+3. **Round 3**: Claude synthesizes v3 from both versions
+4. **Round 4**: Codex confirms convergence or provides final feedback
+5. **Result**: Claude enters plan mode with the refined prompt
+
+The refined prompt instructs Claude to thoroughly investigate the codebase, analyze the problem in context, and produce a detailed implementation plan before writing code.
+
+### `/claudex` vs `/codex`
+
+| Aspect | `/claudex` | `/codex` |
+|--------|------------|----------|
+| **Purpose** | Refine prompts for Claude's planning | Execute tasks via Codex |
+| **Flow** | Codex refines → Claude plans | Claude delegates → Codex executes |
+| **Result** | Claude enters plan mode | Codex response returned |
+| **Use when** | Complex tasks needing investigation | Quick Codex consultation |
+| **Latency** | ~30-60s (multi-round) | ~15-30s (single call) |
+
+### Natural language triggers for claudex
+
+- "Plan how to add authentication"
+- "Investigate and plan the database migration"
+- "Design an approach for the caching layer"
+- "Help me plan this properly"
+
 ## How It Works
 
 ```
@@ -71,12 +105,15 @@ Codex responses are presented as:
 ```
 plugins/codex-bridge/
 ├── .claude-plugin/
-│   └── plugin.json            # Manifest: MCP server + command + skill
+│   └── plugin.json            # Manifest: MCP server + commands + skills
 ├── commands/
-│   └── codex.md               # /codex slash command definition
+│   ├── codex.md               # /codex — send prompts to Codex
+│   └── claudex.md             # /claudex — refine prompts via Codex, enter plan mode
 └── skills/
-    └── codex-bridge/
-        └── SKILL.md            # Skill: when and how to invoke Codex
+    ├── codex-bridge/
+    │   └── SKILL.md           # Auto-trigger for "ask codex" patterns
+    └── claudex/
+        └── SKILL.md           # Auto-trigger for "plan how to" patterns
 ```
 
 ## MCP Tools Reference
