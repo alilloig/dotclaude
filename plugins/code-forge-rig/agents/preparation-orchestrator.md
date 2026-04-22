@@ -140,14 +140,14 @@ Update `.forge/status.md` phase to `"agent-detection"`.
 
 | Signal | Role | Prompt Source |
 |--------|------|--------------|
-| `.move` files, `Move.toml`, "Sui"/"Move" in intent | `move-agent` | `~/workspace/claudefiles/_meta/AGENTS.md` |
-| `next.config.*`, React deps, "Next.js"/"React" in intent | `frontend-agent` | `~/workspace/claudefiles/_meta/AGENTS.md` |
-| "relay", "event listener", "webhook", "subscription", "oracle" in intent; or event-driven service patterns in codebase | `event-services-agent` | `~/workspace/claudefiles/_meta/AGENTS.md` |
+| `.move` files, `Move.toml`, "Sui"/"Move" in intent | `move-agent` | `~/.claude/_meta/AGENTS.md` |
+| `next.config.*`, React deps, "Next.js"/"React" in intent | `frontend-agent` | `~/.claude/_meta/AGENTS.md` |
+| "relay", "event listener", "webhook", "subscription", "oracle" in intent; or event-driven service patterns in codebase | `event-services-agent` | `~/.claude/_meta/AGENTS.md` |
 | No match | Generic (no injection) | N/A |
 
 #### If agent override is set
 
-Use the specified roles instead of auto-detection. Read their prompts from `~/workspace/claudefiles/_meta/AGENTS.md`.
+Use the specified roles instead of auto-detection. Read their prompts from `~/.claude/_meta/AGENTS.md`.
 
 #### Write Config
 

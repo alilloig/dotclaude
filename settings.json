@@ -60,7 +60,7 @@
     "local": {
       "source": {
         "source": "directory",
-        "path": "/Users/alilloig/workspace/claudefiles/plugins/local"
+        "path": "/Users/alilloig/workspace/dotfiles/.claude/plugins/local"
       }
     }
   },

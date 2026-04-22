@@ -1,5 +1,5 @@
 #!/bin/bash
-# Bootstrap claudefiles: create the ~/.claude symlink
+# Bootstrap dotclaude: create the ~/.claude symlink
 # Run on a new machine after cloning the repo
 #
 # Also fixes plugin hook permissions (can be re-run any time after plugin updates).
