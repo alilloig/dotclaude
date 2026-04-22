@@ -6,12 +6,38 @@
   },
   "permissions": {
     "allow": [
-      "Bash(claude team:*)",
-      "Bash(claude:*)"
+      "Bash(tree:*)",
+      "Bash(du:*)",
+      "Bash(ls:*)",
+      "Bash(echo:*)",
+      "Bash(done)",
+      "Bash(while read f)",
+      "Bash(do)",
+      "Bash(if ! head -20 \"$f\")",
+      "Bash(then)",
+      "Bash(fi)",
+      "Bash(tr:*)",
+      "Bash(find:*)",
+      "Bash(xargs -0 -I{} sh -c 'if ! head -20 \"\"{}\"\" | grep -q \"\"draft: true\"\"; then echo \"\"{}\"\"; fi')",
+      "Bash(python3:*)",
+      "Bash(do if head -20 \"$f\")",
+      "Bash(then echo \"$f\")",
+      "Bash(then rm \"$f\")",
+      "Bash(while read d)",
+      "Bash(do rm -rf \"$d\")",
+      "Bash(git init:*)",
+      "Bash(git remote add:*)",
+      "Bash(git -C /Users/alilloig/workspace/sui-pilot status -u)",
+      "Bash(git -C /Users/alilloig/workspace/sui-pilot diff)",
+      "Bash(git -C /Users/alilloig/workspace/sui-pilot add AGENTS.md README.md sui-pilot.png .sui-docs/)",
+      "Bash(git -C /Users/alilloig/workspace/sui-pilot commit -m \"$\\(cat <<''EOF''\nInitial commit: Sui documentation copilot for AI agents\n\nCurated local knowledge base of 180 Sui/Move MDX docs with an\nAGENTS.md index for AI agent discovery. Covers concepts, guides,\nreferences, and standards.\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git -C /Users/alilloig/workspace/sui-pilot push -u origin main)",
+      "Bash(git -C /Users/alilloig/workspace/sui-pilot remote set-url:*)",
+      "Bash(git -C /Users/alilloig/workspace/sui-pilot status)",
+      "Bash(gh pr:*)"
     ],
     "defaultMode": "auto"
   },
-  "model": "claude-opus-4-5",
   "hooks": {
     "PreToolUse": [
       {
@@ -40,34 +66,34 @@
     "commit-commands@claude-plugins-official": true,
     "feature-dev@claude-plugins-official": true,
     "frontend-design@claude-plugins-official": true,
-    "github@claude-plugins-official": false,
+    "github@claude-plugins-official": true,
     "learning-output-style@claude-plugins-official": true,
     "linear@claude-plugins-official": false,
     "playground@claude-plugins-official": true,
     "playwright@claude-plugins-official": false,
     "plugin-dev@claude-plugins-official": true,
     "pr-review-toolkit@claude-plugins-official": true,
-    "pyright-lsp@claude-plugins-official": true,
-    "rust-analyzer-lsp@claude-plugins-official": true,
+    "pyright-lsp@claude-plugins-official": false,
+    "rust-analyzer-lsp@claude-plugins-official": false,
     "security-guidance@claude-plugins-official": true,
-    "slack@claude-plugins-official": true,
+    "slack@claude-plugins-official": false,
     "superpowers@claude-plugins-official": true,
-    "swift-lsp@claude-plugins-official": true,
+    "swift-lsp@claude-plugins-official": false,
     "typescript-lsp@claude-plugins-official": true,
     "skill-creator@claude-plugins-official": true,
-    "telegram@claude-plugins-official": true,
+    "telegram@claude-plugins-official": false,
     "remember@claude-plugins-official": true,
     "hookify@claude-plugins-official": true,
-    "gopls-lsp@claude-plugins-official": true,
+    "gopls-lsp@claude-plugins-official": false,
     "mcp-server-dev@claude-plugins-official": true,
     "notion@claude-plugins-official": false,
     "chrome-devtools-mcp@claude-plugins-official": true,
-    "impeccable@impeccable": true,
+    "impeccable@impeccable": false,
     "code-forge@local": true,
     "code-forge-rig@local": true,
     "codex-bridge@local": true,
-    "forge-bench@local": true,
-    "sui-wallet@local": true,
+    "forge-bench@local": false,
+    "sui-wallet@local": false,
     "sui-pilot@local": true
   },
   "extraKnownMarketplaces": {
@@ -86,9 +112,10 @@
     }
   },
   "effortLevel": "high",
-  "autoUpdatesChannel": "stable",
+  "autoUpdatesChannel": "latest",
   "skipDangerousModePermissionPrompt": true,
   "skipAutoPermissionPrompt": true,
+  "useAutoModeDuringPlan": true,
   "autoMode": {
     "allow": [
       "pnpm commands are safe — install, dev, build, test, lint, etc.",
@@ -108,5 +135,6 @@
       "Package manager is always pnpm, never npm or yarn",
       "Sui on-chain operations (publish, call, upgrade, transfer) are gated by a PreToolUse hook that checks the active network"
     ]
-  }
+  },
+  "defaultMode": "auto"
 }
