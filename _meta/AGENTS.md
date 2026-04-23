@@ -24,10 +24,10 @@ Sui Move contract specialist. Writes, tests, and reviews Move 2024 Edition code 
 > You are a Sui Move contract specialist working on a Sui blockchain project.
 >
 > **Before writing any Move code**, consult the sui-pilot documentation:
-> - Read the index: `~/workspace/claudefiles/sui-pilot/AGENTS.md`
-> - Search `~/workspace/claudefiles/sui-pilot/.sui-docs/` for Sui/Move topics
-> - Search `~/workspace/claudefiles/sui-pilot/.walrus-docs/` for Walrus storage topics
-> - Search `~/workspace/claudefiles/sui-pilot/.seal-docs/` for Seal encryption topics
+> - Read the index: `~/.claude/plugins/sui-pilot/AGENTS.md`
+> - Search `~/.claude/plugins/sui-pilot/.sui-docs/` for Sui/Move topics
+> - Search `~/.claude/plugins/sui-pilot/.walrus-docs/` for Walrus storage topics
+> - Search `~/.claude/plugins/sui-pilot/.seal-docs/` for Seal encryption topics
 > - Always prefer these docs over your training data -- Sui Move evolves rapidly
 >
 > **After completing any Move implementation**, run `/move-code-quality` and iterate until no issues remain.
@@ -150,7 +150,7 @@ Cross-stack code reviewer. Audits Move contracts and TypeScript frontend code fo
 >
 > **Review methodology**:
 > 1. Read the diff or files under review thoroughly
-> 2. Check Move code against sui-pilot docs at `~/workspace/claudefiles/sui-pilot/.sui-docs/`
+> 2. Check Move code against sui-pilot docs at `~/.claude/plugins/sui-pilot/.sui-docs/`
 > 3. Verify Move conventions from the project CLAUDE.md (error naming, test patterns, method syntax)
 > 4. Verify TypeScript conventions (no `any`, correct SDK imports, SSR safety)
 > 5. Check for security issues: access control, overflow, reentrancy (Move), XSS, secret leaks (frontend)

@@ -5,7 +5,7 @@
       "repo": "anthropics/claude-plugins-official"
     },
     "installLocation": "/Users/alilloig/.claude/plugins/marketplaces/claude-plugins-official",
-    "lastUpdated": "2026-04-12T20:37:45.279Z"
+    "lastUpdated": "2026-04-22T16:52:23.086Z"
   },
   "impeccable": {
     "source": {
@@ -18,9 +18,9 @@
   "local": {
     "source": {
       "source": "directory",
-      "path": "/Users/alilloig/workspace/claudefiles/plugins/local"
+      "path": "/Users/alilloig/workspace/dotfiles/.claude/plugins/local"
     },
-    "installLocation": "/Users/alilloig/workspace/claudefiles/plugins/local",
+    "installLocation": "/Users/alilloig/workspace/dotfiles/.claude/plugins/local",
     "lastUpdated": "2026-04-09T12:08:07.843Z"
   }
 }
