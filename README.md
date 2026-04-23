@@ -40,7 +40,7 @@ bash ~/.claude/setup.sh
 | Plugin state | `plugins/*.json` |
 | Agent catalog & recipes | `_meta/AGENTS.md` |
 | Documentation & audits | `_meta/docs/` |
-| Sui/Walrus/Seal docs (submodule) | `plugins/sui-pilot/` |
+| Sui/Walrus/Seal docs (submodule) | `sui-pilot/` |
 
 ## What's Gitignored
 
@@ -103,7 +103,7 @@ Defined in [`_meta/AGENTS.md`](_meta/AGENTS.md). Reusable roles (`move-agent`, `
 
 ### Documentation Bridge
 
-The `plugins/sui-pilot/` submodule provides 500+ doc files extracted from official sources:
+The `sui-pilot/` submodule provides 500+ doc files extracted from official sources:
 
 | Directory | Docs | Topics |
 |-----------|------|--------|
@@ -125,12 +125,12 @@ The `plugins/sui-pilot/` submodule provides 500+ doc files extracted from offici
 |-----------|------|--------|
 | move-code-quality | `skills/move-code-quality/` | [1NickPappas/move-code-quality-skill](https://github.com/1NickPappas/move-code-quality-skill) |
 | move-code-review | `skills/move-code-review/` | [MystenLabs/move-code-review-skill](https://github.com/MystenLabs/move-code-review-skill) |
-| sui-pilot | `plugins/sui-pilot/` | [alilloig/sui-pilot](https://github.com/alilloig/sui-pilot) |
+| sui-pilot | `sui-pilot/` | [alilloig/sui-pilot](https://github.com/alilloig/sui-pilot) |
 
 ```bash
 # Update a submodule to latest
-cd plugins/sui-pilot && git pull origin main && cd ../..
-git add plugins/sui-pilot && git commit -m "Update sui-pilot submodule"
+cd sui-pilot && git pull origin main && cd ..
+git add sui-pilot && git commit -m "Update sui-pilot submodule"
 ```
 
 > **Note on nesting**: when consumed via `dotfiles`, `dotclaude` itself is a submodule and the entries above become transitive submodules. `git clone --recurse-submodules` on `dotfiles` (or `git submodule update --init --recursive`) brings them all in.

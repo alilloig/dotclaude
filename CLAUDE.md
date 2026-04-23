@@ -19,11 +19,11 @@
 
 **BEFORE any Sui/Move/Walrus/Seal work**, consult the sui-pilot documentation copilot:
 
-1. **Read the index**: `~/.claude/plugins/sui-pilot/AGENTS.md`
+1. **Read the index**: `~/.claude/sui-pilot/AGENTS.md`
 2. **Search the docs**: Use Grep/Read on the appropriate doc directory based on the topic:
-   - **Sui/Move**: `~/.claude/plugins/sui-pilot/.sui-docs/` (blockchain, Move language, objects, transactions, SDKs)
-   - **Walrus**: `~/.claude/plugins/sui-pilot/.walrus-docs/` (decentralized storage, blobs, Walrus Sites, TypeScript SDK)
-   - **Seal**: `~/.claude/plugins/sui-pilot/.seal-docs/` (secrets management, encryption, key servers, access control)
+   - **Sui/Move**: `~/.claude/sui-pilot/.sui-docs/` (blockchain, Move language, objects, transactions, SDKs)
+   - **Walrus**: `~/.claude/sui-pilot/.walrus-docs/` (decentralized storage, blobs, Walrus Sites, TypeScript SDK)
+   - **Seal**: `~/.claude/sui-pilot/.seal-docs/` (secrets management, encryption, key servers, access control)
 3. **Verify patterns**: Cross-reference code patterns against the official docs before writing code
 
 **Why**: Sui Move evolves rapidly and training data goes stale. sui-pilot contains doc files across three ecosystems (Sui, Walrus, Seal) extracted from official documentation. Always prefer these docs over memory.
