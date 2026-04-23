@@ -40,19 +40,6 @@ echo "--- Submodules ---"
 git -C "$REPO_DIR" submodule update --init --recursive
 echo "✓ Submodules initialized"
 
-# The remember plugin's SessionStart hook redirects stderr to
-# $PROJECT/.remember/logs/hook-errors.log. Bash evaluates that redirect
-# before running the hook body, so on a fresh submodule checkout (where
-# .remember/ has not been created yet) the redirect fails with ENOENT and
-# Claude Code reports a SessionStart hook error the first time a session
-# is launched inside the submodule. Pre-create the skeleton so every
-# submodule is a valid remember project out of the box.
-git -C "$REPO_DIR" submodule foreach --quiet --recursive '
-    mkdir -p "$toplevel/$sm_path/.remember/logs/autonomous" \
-             "$toplevel/$sm_path/.remember/tmp"
-' 2>/dev/null || true
-echo "✓ .remember/ skeleton ensured in submodules"
-
 # --- 3. Marketplaces ---
 echo ""
 echo "--- Marketplaces ---"
