@@ -8,7 +8,6 @@
     "allow": ["Bash(claude team:*)", "Bash(claude:*)"],
     "defaultMode": "default"
   },
-  "model": "claude-opus-4-5",
   "statusLine": {
     "type": "command",
     "command": "bash /Users/alilloig/.claude/statusline-command.sh"
@@ -31,7 +30,7 @@
     "pyright-lsp@claude-plugins-official": true,
     "rust-analyzer-lsp@claude-plugins-official": true,
     "security-guidance@claude-plugins-official": true,
-    "slack@claude-plugins-official": true,
+    "slack@claude-plugins-official": false,
     "superpowers@claude-plugins-official": true,
     "swift-lsp@claude-plugins-official": true,
     "typescript-lsp@claude-plugins-official": true,
@@ -48,7 +47,9 @@
     "code-forge-rig@local": true,
     "codex-bridge@local": true,
     "forge-bench@local": true,
-    "sui-wallet@local": true
+    "sui-wallet@local": true,
+    "legalzoom@claude-plugins-official": true,
+    "ralph-loop@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
     "impeccable": {
@@ -65,6 +66,6 @@
     }
   },
   "effortLevel": "high",
-  "autoUpdatesChannel": "stable",
+  "autoUpdatesChannel": "latest",
   "skipDangerousModePermissionPrompt": true
 }
