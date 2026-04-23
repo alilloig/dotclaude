@@ -23,6 +23,7 @@ todos/
 # ── Plugin runtime (keep config, ignore downloaded cache/repos) ──
 plugins/cache/
 plugins/marketplaces/
+plugins/known_marketplaces.json
 plugins/install-counts-cache.json
 
 # ── Channels (bot tokens, access control — NEVER commit) ──

@@ -22,7 +22,9 @@
       "WebFetch(domain:docs.sui.io)",
       "WebFetch(domain:github.com)",
       "mcp__codex__codex",
-      "mcp__codex__codex-reply"
+      "mcp__codex__codex-reply",
+      "Bash(zsh -n /Users/alilloig/workspace/dotfiles/.zshrc)",
+      "Bash(zsh -i -c 'source ~/.zshrc && echo \"sourced OK\"; command -v nvm; nvm --version 2>/dev/null; which node')"
     ]
   }
 }
