@@ -5,8 +5,11 @@
     "CLAUDE_CODE_NO_FLICKER": "1"
   },
   "permissions": {
-    "allow": ["Bash(claude team:*)", "Bash(claude:*)"],
-    "defaultMode": "default"
+    "allow": [
+      "Bash(claude team:*)",
+      "Bash(claude:*)"
+    ],
+    "defaultMode": "auto"
   },
   "statusLine": {
     "type": "command",
@@ -67,5 +70,6 @@
   },
   "effortLevel": "high",
   "autoUpdatesChannel": "latest",
-  "skipDangerousModePermissionPrompt": true
+  "skipDangerousModePermissionPrompt": true,
+  "skipAutoPermissionPrompt": true
 }
