@@ -51,7 +51,6 @@
     "typescript-lsp@claude-plugins-official": true,
     "skill-creator@claude-plugins-official": true,
     "telegram@claude-plugins-official": true,
-    "remember@claude-plugins-official": true,
     "hookify@claude-plugins-official": true,
     "gopls-lsp@claude-plugins-official": true,
     "mcp-server-dev@claude-plugins-official": true,
@@ -63,8 +62,7 @@
     "codex-bridge@local": true,
     "forge-bench@local": true,
     "sui-wallet@local": true,
-    "legalzoom@claude-plugins-official": true,
-    "ralph-loop@claude-plugins-official": true
+    "remember@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
     "impeccable": {
@@ -77,11 +75,17 @@
       "source": {
         "source": "directory",
         "path": "/Users/alilloig/workspace/dotfiles/.claude/plugins/local"
-      }
+      },
+      "autoUpdate": true
     }
   },
   "effortLevel": "high",
   "autoUpdatesChannel": "latest",
   "skipDangerousModePermissionPrompt": true,
+  "editorMode": "vim",
+  "preferredNotifChannel": "iterm2",
+  "teammateMode": "tmux",
+  "remoteControlAtStartup": true,
+  "agentPushNotifEnabled": false,
   "skipAutoPermissionPrompt": true
 }
