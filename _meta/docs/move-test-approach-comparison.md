@@ -17,7 +17,7 @@ There is a clear gap in the current Move development skill pipeline: `move-code-
 |-------|------|---------|
 | `move-code-review` | Flags 5 TST-* findings (missing coverage, unhappy paths, bounds, loops, time edges) | Generate tests to fill those gaps |
 | `move-code-quality` | Checks 50+ quality rules including test structure | Create tests |
-| `move-call-chains` | Maps function flows as Mermaid diagrams | Anything test-related |
+| `move-call-chains` | Maps function flows as ASCII diagrams | Anything test-related |
 
 **Gap:** No skill creates Move tests. The review skill says "you're missing tests here" but nothing says "here's how to write them."
 

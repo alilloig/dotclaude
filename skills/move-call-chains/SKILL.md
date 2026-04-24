@@ -1,7 +1,7 @@
 ---
 name: move-call-chains
 description: |
-  Generates Mermaid call-chain diagrams for Sui Move packages, organized as user
+  Generates ASCII call-chain diagrams for Sui Move packages, organized as user
   stories. This skill should be used when the user asks to "map the call chains",
   "diagram the function flows", "visualize Move package functions", "create call
   chain diagrams", "show me the function call graph", "map the public API", or
@@ -12,14 +12,14 @@ description: |
 
 # Move Call Chain Diagrams
 
-Generate a comprehensive call-chain reference document for Sui Move packages. The output is a single markdown file with Mermaid flowcharts showing every public/entry function's internal call chain, organized by user stories that follow the project's domain logic.
+Generate a comprehensive call-chain reference document for Sui Move packages. The output is a single markdown file with ASCII box-and-arrow diagrams showing every public/entry function's internal call chain, organized by user stories that follow the project's domain logic.
 
 ## Process Overview
 
 1. **Extract** — Run the extraction script to inventory all functions
 2. **Explore** — Read key modules to trace call chains
 3. **Group** — Organize functions into domain-driven user stories
-4. **Diagram** — Generate one Mermaid flowchart per independent operation
+4. **Diagram** — Generate one ASCII diagram per independent operation
 5. **Verify** — Build a completeness checklist to ensure full coverage
 
 ## Step 1: Extract Function Inventory
@@ -71,32 +71,47 @@ Group functions into user stories based on the project's domain lifecycle. Each 
 - Distribution/payout operations
 - Redemption/settlement
 
-## Step 4: Generate Mermaid Diagrams
+## Step 4: Generate ASCII Diagrams
 
-Read `references/mermaid-style-guide.md` for the complete style conventions.
+Read `references/ascii-style-guide.md` for the complete style conventions.
 
 **Key rules:**
-- One Mermaid block per independent operation (do NOT combine unrelated flows)
+- One ```` ```text ```` block per independent operation (do NOT combine unrelated flows)
 - Connected operations with cross-references MUST stay in a single diagram
-- Use the color-coded node shapes to distinguish visibility levels
-- Annotate edges with `Auth<Role>` requirements using `#60;` / `#62;` entities
-- Keep diagrams under ~40 nodes; split into sub-diagrams if needed
+- Every node carries a visibility/role tag as the rightmost token: `[PUB]`, `[priv]`, `[pkg]`, `{EXT}`, `{COND}`, `*EVT*`
+- Annotate entry-point edges with the required `Auth<Role>` — generics are written as-is, no escaping needed
+- Keep each diagram under ~80 lines tall; split into sub-diagrams per logical phase if it outgrows that
 - Merge Retail/Institutional variants that delegate to the same `_impl` function
 
 **For each user story, write:**
 
-```markdown
+````markdown
 ## Story N: [Title]
 
 **As a** [role], **I want to** [action], **so that** [outcome].
 
-```mermaid
-graph TD
-    ...diagram...
+```text
++-------------------+
+|    place_bid      |  [PUB]
++-------------------+
+        |  Auth<Investor>
+        v
++-------------------+
+|  check_valid_bid  |  [priv]
++-------------------+
+        |
+        v
+    < route? >                     {COND}
+     /       \
+   yes       no
+    v         v
++---------+ +---------+
+| retail  | | inst    |  [pkg]
++---------+ +---------+
 ```
 
 **Additional notes or query function tables as needed.**
-```
+````
 
 ## Step 5: Build Completeness Checklist
 
@@ -129,4 +144,4 @@ Write the document to `CALL_CHAINS.md` at the project root (or the location the 
 - **`scripts/extract-move-functions.py`** — Extracts all function declarations from Move source files with visibility, module, and parameter info
 
 ### Reference Files
-- **`references/mermaid-style-guide.md`** — Complete Mermaid conventions: node shapes, colors, classDef block, generic type escaping, subgraph rules, edge label patterns
+- **`references/ascii-style-guide.md`** — Complete ASCII conventions: box shapes per visibility, visibility/role tag glossary, edge and auth-label syntax, branching rails, grouping via banner comments, cross-module labelling, and a pasteable legend block for `CALL_CHAINS.md`
