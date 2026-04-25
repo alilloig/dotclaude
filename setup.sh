@@ -37,8 +37,8 @@ fi
 # --- 2. Git submodules ---
 echo ""
 echo "--- Submodules ---"
-git -C "$REPO_DIR" submodule update --init --recursive
-echo "✓ Submodules initialized"
+git -C "$REPO_DIR" submodule update --init --recursive --remote --merge
+echo "✓ Submodules initialized + fast-forwarded to declared branches"
 
 # --- 3. Marketplaces ---
 echo ""

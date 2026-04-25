@@ -83,6 +83,7 @@ See `.gitignore` for the complete list.
 | `codex-bridge` | Integration between Claude Code and OpenAI Codex CLI via MCP |
 | `marp-slide-content` | Turns source material into well-structured generic Marp slide markdown |
 | `cli-agent-mcp-integration` | Pattern for integrating external CLI agents via MCP server mode |
+| `git-submodule-add` | Adds a new git submodule with the user's preferred pattern (`branch = main` + `update = merge` so a single command fast-forwards every submodule to its declared branch tip) |
 
 ### Commands
 
@@ -134,10 +135,16 @@ The `sui-pilot/` submodule provides 500+ doc files extracted from official sourc
 | move-code-review | `skills/move-code-review/` | [MystenLabs/move-code-review-skill](https://github.com/MystenLabs/move-code-review-skill) |
 | sui-pilot | `sui-pilot/` | [alilloig/sui-pilot](https://github.com/alilloig/sui-pilot) |
 
+Every submodule declares `branch = main` and `update = merge` in `.gitmodules` so `git submodule update --remote --merge` fast-forwards everything to the latest tip without detached HEAD. Combined with `submodule.recurse = true` in the user's `.gitconfig`, `git pull/push/checkout/clone` auto-recurse.
+
 ```bash
-# Update a submodule to latest
-cd sui-pilot && git pull origin main && cd ..
-git add sui-pilot && git commit -m "Update sui-pilot submodule"
+# Bump every submodule (parent + nested) to its declared branch tip
+~/workspace/dotfiles/bump-submodules.sh
+
+# Or, manually for one submodule:
+git -C sui-pilot pull origin main && git add sui-pilot && git commit -m "Update sui-pilot submodule"
 ```
+
+When adding a **new** submodule, invoke the `git-submodule-add` skill so the pattern is applied from the start.
 
 > **Note on nesting**: when consumed via `dotfiles`, `dotclaude` itself is a submodule and the entries above become transitive submodules. `git clone --recurse-submodules` on `dotfiles` (or `git submodule update --init --recursive`) brings them all in.
