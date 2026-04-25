@@ -25,6 +25,12 @@
       "category": "development"
     },
     {
+      "name": "code-forge-v2",
+      "description": "Code Forge v2 — TDD-as-phase, script-coordinated parallel review, extended forge-guard",
+      "source": "./code-forge-v2",
+      "category": "development"
+    },
+    {
       "name": "forge-bench",
       "description": "Benchmarking framework for comparing Code Forge variants",
       "source": "./forge-bench",

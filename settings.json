@@ -59,6 +59,7 @@
     "impeccable@impeccable": true,
     "code-forge@local": true,
     "code-forge-rig@local": true,
+    "code-forge-v2@local": true,
     "codex-bridge@local": true,
     "forge-bench@local": true,
     "sui-wallet@local": true,

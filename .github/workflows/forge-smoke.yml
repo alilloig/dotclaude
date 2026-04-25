@@ -1,0 +1,30 @@
+name: code-forge-v2 smoke
+
+on:
+  push:
+    paths:
+      - "plugins/code-forge-v2/**"
+      - ".github/workflows/forge-smoke.yml"
+  pull_request:
+    paths:
+      - "plugins/code-forge-v2/**"
+      - ".github/workflows/forge-smoke.yml"
+
+jobs:
+  smoke:
+    name: tests/smoke.sh
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install jq
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq jq
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Run smoke tests
+        run: bash plugins/code-forge-v2/tests/smoke.sh
