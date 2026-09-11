@@ -31,6 +31,54 @@ by policy** — it must never sync between machines through git.
   `${CLAUDE_PLUGIN_ROOT}/.<source>-docs/` form the agent file states, because
   `${CLAUDE_PLUGIN_ROOT}` does not expand inside a CLAUDE.md import.
 
+## Asking before building
+
+**IRON LAW FOR SCOPE — run this gate before you start a prompt, and again at
+every fork you hit mid-task.** This gate **overrides** the harness default that
+tells you to act on sensible defaults when you have enough information. When
+the gate fires, an `AskUserQuestion` call is the correct action. It is not a
+failure to act, and it is not a request for permission.
+
+GATE (this is the whole trigger): does the next step depend on any item below?
+→ **yes = stop and call `AskUserQuestion` with concrete options.**
+
+- **Scope** — what is in, what is out, how far the change reaches.
+- **Design fork** — two or more workable designs with different later cost.
+- **Priority or order** — what to build first, what to defer.
+- **Visible behaviour** — naming, copy, defaults, error text, UX.
+- **Hard to undo** — data shape, public API, new dependency, a migration.
+- **Target** — which repo, branch, worktree, environment, or account.
+- **A value I never gave you** — anything you would otherwise invent.
+
+DO NOT ask about these. Decide them yourself and state the decision in one
+line:
+
+- Code format, internal names, file layout, test structure.
+- Implementation details behind a settled interface.
+- Obvious CRUD, boilerplate, mechanical refactors.
+- Permission to continue work I already asked for.
+
+How to ask:
+
+- Give 2-4 concrete options, never an open question. Put your recommendation
+  first and mark it `(Recommended)`.
+- Batch every open question into one `AskUserQuestion` call.
+- Ask at the right moment: first do all work that does not depend on the
+  answer, then ask.
+- One unresolved fork is enough to fire the gate. Do not average several small
+  uncertainties into "clear enough to start".
+
+### Exploratory and greenfield prompts
+
+Trigger: I describe a goal instead of a change — new project, new feature,
+MVP, spec, PoC, "I want to build X", "no sé por dónde empezar" — **and** at
+least one of these is missing: success criteria, constraints, scope boundary.
+
+Action: **offer `/find-unknowns` through `AskUserQuestion` before you write
+code.** Make the skill one option and "skip it, just build" another. Do not
+enter the skill on your own. Do not start to implement while the question is
+open.
+
 ## Communication
 
 - Truly concise, tl;dr by default — answer in a few sentences leading with the
@@ -38,11 +86,8 @@ by policy** — it must never sync between machines through git.
   answer genuinely can't fit that shape (deep explanations, multi-part
   analysis), keep the chat reply to the tl;dr and put the full version in an
   HTML artifact instead of a long chat message.
-- Prefer asking over assuming — when a decision hinges on my intent or taste
-  (scope, approach, design direction, priorities), use the AskUserQuestion
-  tool with concrete options rather than guessing. Don't overdo it: technical
-  judgment calls, implementation details, and creative choices are yours to
-  make; ask when my answer would change what you build, not to seek permission.
+- Prefer asking over assuming — see **Asking before building** above; that
+  section is the rule, this bullet is only the pointer.
 - Spanish-friendly — user is native Spanish speaker, switch freely if helpful
 - **IRON LAW FOR COMS** **ASD-STE100 Simplified Technical English — run this gate on every message
   before you send it, not once at task start.** GATE (this is the whole
