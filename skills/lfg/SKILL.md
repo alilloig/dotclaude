@@ -158,9 +158,13 @@ session, STOP and tell the user to run
       ```
       If `.claude` is itself a submodule or a nested repo (the dotfiles repo is
       one), the parent stops at the submodule boundary but the INNER repo still
-      sees the directory — add the rule there too:
+      sees the directory — add the rule there too. Compare TOPLEVELS to detect
+      that: a bare `rev-parse --show-toplevel` walks up, so it succeeds for an
+      ordinary `.claude/` directory too and would write the rule into the wrong
+      repo's exclude file:
       ```bash
-      git -C "$TOPLEVEL/.claude" rev-parse --show-toplevel >/dev/null 2>&1 \
+      CLAUDE_TOP="$(git -C "$TOPLEVEL/.claude" rev-parse --show-toplevel 2>/dev/null || true)"
+      [ -n "$CLAUDE_TOP" ] && [ "$CLAUDE_TOP" != "$TOPLEVEL" ] \
         && { git -C "$TOPLEVEL/.claude" check-ignore -q worktrees \
              || echo 'worktrees/' >> "$(git -C "$TOPLEVEL/.claude" rev-parse --path-format=absolute --git-common-dir)/info/exclude"; }
       ```
@@ -388,7 +392,12 @@ reviewers would silently fall back to the `model_reasoning_effort` in
    context. The heredoc is UNQUOTED on purpose — `$PR_NUMBER`, `$RUN_DIR`, `$BASE_REF`,
    `$OWNER`, `$REPO`, `$SKILL_DIR` and `$REVIEW_SCHEMA` must expand into the
    brief. That also means a trailing `\` would be eaten as a line continuation,
-   so the reviewer command below writes `\\` to land one literal backslash:
+   so the reviewer command below writes `\\` to land one literal backslash.
+   The closing `EOF` sits at COLUMN 0 on purpose and must stay there: `<<EOF`
+   matches its terminator only at the start of a line, so an indented `EOF`
+   silently swallows the rest of the block into the brief, skips the next
+   command, and still exits 0. `<<-EOF` is not a fix — it strips leading tabs
+   only, which markdown does not preserve.
    ```bash
    cat > "$RUN_DIR/codex-orchestrator.md" <<EOF
    You are the review orchestrator for pull request #$PR_NUMBER of $OWNER/$REPO.
@@ -445,7 +454,7 @@ reviewers would silently fall back to the `model_reasoning_effort` in
    Hard limits: review only. Do not edit, create or delete any file inside the
    repository. Do not commit, push, approve the PR, change its draft state, or
    touch any branch. Your only writes are inside $RUN_DIR.
-   EOF
+EOF
    ```
 5. Launch the orchestrator as ONE background Bash call and checkpoint per step 3:
    ```bash
@@ -491,8 +500,8 @@ PR carries two independent consolidated reviews before you adjudicate in Phase 4
 ## Phase 4 — Self-adjudicate
 
 You now act as the PR author deciding what to take from the review. You do NOT
-approve the PR — GitHub permissions block self-approval anyway; readiness is the
-user's call on GitHub.
+approve the PR — GitHub permissions block self-approval anyway. Readiness is no
+longer the user's call: step 5 below flips the draft to ready. Merging still is.
 
 1. Read the posted review from GitHub, not from your own memory of Phase 3 —
    in `codex` mode you never saw the findings, and in `super` mode there are two
