@@ -54,6 +54,32 @@ for p in preflight shipped simplified review-dispatched review-posted adjudicate
 done
 bash "$RS" set "$RUN" phase shipped  # restore the in-flight phase later cases depend on
 
+# --- review_mode is a three-value enum; quiz_gate a two-value one ---
+for m in agents codex super; do
+  if bash "$RS" set "$RUN" review_mode "$m" > /dev/null 2>&1 && [[ "$(bash "$RS" get "$RUN" review_mode)" == "$m" ]]; then
+    pass "review_mode: '$m' accepted and round-trips"
+  else
+    fail "review_mode: '$m' accepted and round-trips"
+  fi
+done
+if bash "$RS" set "$RUN" review_mode both > /dev/null 2>&1; then
+  fail "review_mode: rejects an unknown mode"
+else
+  pass "review_mode: rejects an unknown mode"
+fi
+for g in on off; do
+  if bash "$RS" set "$RUN" quiz_gate "$g" > /dev/null 2>&1 && [[ "$(bash "$RS" get "$RUN" quiz_gate)" == "$g" ]]; then
+    pass "quiz_gate: '$g' accepted and round-trips"
+  else
+    fail "quiz_gate: '$g' accepted and round-trips"
+  fi
+done
+if bash "$RS" set "$RUN" quiz_gate yes > /dev/null 2>&1; then
+  fail "quiz_gate: rejects a non-on/off value"
+else
+  pass "quiz_gate: rejects a non-on/off value"
+fi
+
 # --- roster round-trips as a JSON array ---
 bash "$RS" set "$RUN" roster "rev-security-38, rev-tests-38,rev-docs-38"
 assert_valid_json "atomicity smoke: valid JSON after set roster" "$RUN"

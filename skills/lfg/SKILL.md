@@ -3,28 +3,33 @@ name: lfg
 description: |
   One-command "ship + harden + review + adjudicate + explain" pipeline for a
   pull request. Runs five phases from the main session: (1) preflight moves the
-  work into a fresh git worktree if it is sitting in the main checkout, then
-  /commit-push-pr branches, commits, pushes and opens a DRAFT PR; (2) /simplify
-  then a second commit; (3) the pr-review-toolkit review skill fans out
-  fresh-context specialist reviewers (pinned to Opus) — or, with the `--codex`
-  flag, a mirrored fan-out of Codex CLI adversarial reviews — whose
-  double-checked findings the main session posts as a single GitHub PR review with inline
-  ```suggestion blocks and a walkthrough; (4) the main session accepts/rejects
-  each suggestion and lands accepted ones as a third commit; (5) build a visual
-  explainer.html that pitches the change to reviewers/stakeholders; with
+  work into a fresh git worktree under `.claude/worktrees/` if it is sitting in
+  the main checkout, then /commit-push-pr branches, commits, pushes and opens a
+  DRAFT PR; (2) /simplify then a second commit; (3) the pr-review-toolkit review
+  skill fans out fresh-context specialist reviewers (pinned to Opus) — or, with
+  the `--codex` flag, a Codex ORCHESTRATOR session (gpt-6-astra, low effort) that
+  dispatches one adversarial Codex reviewer per dimension (gpt-5.6-sol, high
+  effort), fact-checks their findings and posts them itself; `--super` runs BOTH
+  tracks in parallel and posts two independent reviews. Either way the findings
+  land as a GitHub PR review with inline ```suggestion blocks and a walkthrough;
+  (4) the main session accepts/rejects each suggestion, lands accepted ones as a
+  third commit, and flips the PR from draft to READY FOR REVIEW; (5) build a
+  visual explainer.html that pitches the change to reviewers/stakeholders; with
   `--quiz`, an understanding gate (inline quiz when interactive, self-grading
-  quiz.html when headless) runs first — leaving
-  the draft PR ready for the user to press "Ready for review" or merge on
-  GitHub.
+  quiz.html when headless) runs first — leaving the PR ready for the user to
+  merge on GitHub.
 
   Use when the user says "/lfg", "lfg", "ship it", "full send this PR", "ship and
   review", or wants the whole commit→PR→clean-up→review→address-review loop done in
   one shot on the current working-tree changes. `/lfg --codex` (or "with codex",
-  "codex review it") switches Phase 3 to the Codex reviewer fan-out. `/lfg --quiz`
-  (or asking for the quiz / understanding gate in words) turns on the opt-in
-  Phase 5 quiz gate before the explainer. Domain-aware: Move diffs add a
-  sui-pilot-agent reviewer on top of the pr-review-toolkit agents; every review
-  agent runs on Opus, never the session model.
+  "codex review it") switches Phase 3 to the Codex orchestrator track. `/lfg
+  --super` (or "super review", "both reviews", "claude and codex") runs the
+  Claude and Codex tracks in parallel and posts both consolidated reviews before
+  adjudication. `/lfg --quiz` (or asking for the quiz / understanding gate in
+  words) turns on the opt-in Phase 5 quiz gate before the explainer.
+  Domain-aware: Move diffs add a sui-pilot-agent reviewer on top of the
+  pr-review-toolkit agents; every Claude review agent runs on Opus, never the
+  session model.
 
   Resume tripwire: ALSO use this skill if you wake up with a reviewer-style
   dispatch in context and `${CLAUDE_JOB_DIR:-$TMPDIR}/lfg-*/state.json` records an
@@ -99,8 +104,9 @@ anything sitting in your context:
    session, so first check `gh pr view "$PR_NUMBER" --json reviews -q '.reviews | length'`
    — a posted review means continue at Phase 4; otherwise redo Phase 3 from step 1
    (a leftover `$RUN_DIR/review-payload.json` from the dead run can seed step 5).
-   In codex mode (`review_mode` = `codex` in the state file) the review outputs also
-   survive the dead session — apply Phase 3 step 3's resume note.
+   In codex or super mode (`review_mode` = `codex`/`super` in the state file) the
+   Codex review outputs also survive the dead session — apply Phase 3 step 3's
+   resume note.
 4. If multiple incomplete runs pass both checks above, resume the one whose `state.json` was most
    recently modified, and say so.
 
@@ -140,9 +146,29 @@ session, STOP and tell the user to run
       first (`git switch "$ORIG_BRANCH"` if sub-step 3 already switched away,
       `git reset --hard "$ORIG_SHA"` if it already reset) and `git stash pop` there.
       After sub-step 5's pop there is no stash left. Never leave the work stranded.
-   3. Create the worktree OUTSIDE the repo tree, at
-      `WT="${TOPLEVEL}-worktrees/lfg-<slug>"` (short kebab slug for the work;
-      `mkdir -p "${TOPLEVEL}-worktrees"` first):
+   3. Create the worktree where Claude Code puts them — INSIDE the project, at
+      `WT="$TOPLEVEL/.claude/worktrees/lfg-<slug>"` (short kebab slug for the
+      work). Because the worktree now sits inside the git tree, ignore it FIRST
+      or step 3's "is there anything to ship" check, Phase 2's `git add -A`, and
+      every later `git status` would all see it as untracked content:
+      ```bash
+      mkdir -p "$TOPLEVEL/.claude/worktrees"
+      git -C "$TOPLEVEL" check-ignore -q .claude/worktrees \
+        || echo '.claude/worktrees/' >> "$(git -C "$TOPLEVEL" rev-parse --path-format=absolute --git-common-dir)/info/exclude"
+      ```
+      If `.claude` is itself a submodule or a nested repo (the dotfiles repo is
+      one), the parent stops at the submodule boundary but the INNER repo still
+      sees the directory — add the rule there too. Compare TOPLEVELS to detect
+      that: a bare `rev-parse --show-toplevel` walks up, so it succeeds for an
+      ordinary `.claude/` directory too and would write the rule into the wrong
+      repo's exclude file:
+      ```bash
+      CLAUDE_TOP="$(git -C "$TOPLEVEL/.claude" rev-parse --show-toplevel 2>/dev/null || true)"
+      [ -n "$CLAUDE_TOP" ] && [ "$CLAUDE_TOP" != "$TOPLEVEL" ] \
+        && { git -C "$TOPLEVEL/.claude" check-ignore -q worktrees \
+             || echo 'worktrees/' >> "$(git -C "$TOPLEVEL/.claude" rev-parse --path-format=absolute --git-common-dir)/info/exclude"; }
+      ```
+      Then create it:
       - On `$DEFAULT_BRANCH` → mint the PR branch here (Phase 1's /commit-push-pr then
         sees a non-default branch and skips branching): `git worktree add "$WT" -b <slug>`.
         If the default branch also carried UNPUSHED local commits, they ride along on
@@ -159,6 +185,10 @@ session, STOP and tell the user to run
         `git reset --hard` step and leave the main checkout where it was.
    4. Enter the worktree — prefer the `EnterWorktree` tool with `path: "$WT"` (it
       re-points the session's file tools there); otherwise `cd "$WT"` in Bash.
+      `EnterWorktree` only accepts a `path` under `.claude/worktrees/` of the
+      same repository, which is exactly where sub-step 3 put it. Do NOT call
+      `EnterWorktree` with `name` instead: that mints its OWN worktree off
+      `origin/<default-branch>`, which is not the branch holding your work.
    5. If sub-step 2 stashed: `git stash pop` (now inside the worktree) and confirm
       `git status --porcelain` shows the work again.
    6. Re-run the detection command — it MUST now print `linked-worktree`. Everything
@@ -177,8 +207,10 @@ session, STOP and tell the user to run
    and `set "$RUN_DIR" skill_dir "$SKILL_DIR"`. Record every non-default invocation
    flag in the run state in that same Bash call — resumes read state, never re-guess
    the invocation, and a missing key means the default: `--codex` (or a Codex/
-   cross-model review asked in words) → `set "$RUN_DIR" review_mode codex` (default
-   `agents`); `--quiz` (or the understanding quiz asked in words) →
+   cross-model review asked in words) → `set "$RUN_DIR" review_mode codex`;
+   `--super` (or "super review" / "both reviews" / "claude and codex" in words) →
+   `set "$RUN_DIR" review_mode super` (default `agents`; `--super` wins if both
+   flags are given); `--quiz` (or the understanding quiz asked in words) →
    `set "$RUN_DIR" quiz_gate on` (default `off`). Verify the seed took:
    `test -f "$RUN_DIR/state.json"` — never proceed without it. Remember this path for
    Phases 3–4. From here on, every stop-and-report exit must first checkpoint
@@ -190,8 +222,9 @@ session, STOP and tell the user to run
 Invoke the `/commit-push-pr` skill, telling it the PR must be opened as a **draft**
 (`gh pr create --draft`). It branches off the default branch if needed (usually not —
 Phase 0's worktree guard already minted the branch), makes one commit, pushes, and opens
-the PR. The PR normally stays in draft for the whole pipeline (Phase 3's post fallback
-may drop it); the user promotes or merges it at the end.
+the PR. It stays a draft through the review, and Phase 4 flips it to ready once the
+agentic work is done (Phase 3's post fallback can flip it earlier); the user merges it
+at the end.
 After it completes, capture for later phases:
 
 - `PR_NUMBER`: `gh pr view --json number -q .number`
@@ -233,9 +266,16 @@ Fresh-context agents find; YOU double-check and post. Do not review the diff you
 before the reviewers report — your judgment enters at verification (step 4) and Phase 4.
 
 Mode: use the `review_mode` you recorded in Phase 0 (read it back with
-`run_state.sh get` only on a wake-guard resume; missing = `agents`). `agents` runs
-steps 1–2 below; `codex` replaces steps 1–2 with the "Codex mode" block at the end
-of this phase. Steps 3–7 apply in both modes.
+`run_state.sh get` only on a wake-guard resume; missing = `agents`):
+
+- `agents` — steps 1–2 below, then steps 3–7. You verify and you post.
+- `codex` — the "Codex mode" block at the end of this phase replaces steps 1–2
+  AND steps 4–6: a Codex orchestrator session fact-checks and posts, not you.
+  You still run step 3 and step 7.
+- `super` — the "Super mode" block: both tracks run in parallel and the PR ends
+  up with TWO posted reviews.
+
+Step 3 (checkpoint) and step 7 (confirm posted) apply in every mode.
 
 1. Invoke the `pr-review-toolkit:review-pr` skill on the PR (same sub-skill pattern as
    /simplify in Phase 2), scoped to `git diff "$BASE_REF"...HEAD`. It fans out the
@@ -253,9 +293,11 @@ of this phase. Steps 3–7 apply in both modes.
    `bash "$SKILL_DIR/scripts/run_state.sh" set "$RUN_DIR" phase review-dispatched`.
    (Resume note — on a wake-guard resume at this phase the reviewers died with the
    old session. Agent mode: redo this phase from step 1; a leftover
-   `$RUN_DIR/review-payload.json` can seed step 5. Codex mode: the outputs survive
-   on disk — a `$RUN_DIR/codex-<dim>.json` that parses counts as done; redo only
-   the missing dimensions.)
+   `$RUN_DIR/review-payload.json` can seed step 5. Codex/super mode: the Codex
+   outputs survive on disk — a `$RUN_DIR/codex-<dim>.json` that parses counts as
+   done, and a `$RUN_DIR/codex-verdict.md` means the orchestrator already
+   finished; relaunch the orchestrator only for the missing dimensions, and skip
+   it entirely once step 7's review count is already satisfied.)
 4. Double-check every returned finding against the actual source: re-read the cited
    lines and re-derive the problem. Drop what doesn't survive — not reachable,
    pre-existing on unmodified lines, intended behavior, or a nitpick a senior engineer
@@ -276,64 +318,205 @@ of this phase. Steps 3–7 apply in both modes.
      `gh pr ready "$PR_NUMBER"` and retry ONCE (do not re-draft afterwards). Never use
      APPROVE as the review event.
 7. Confirm it posted — `gh pr view "$PR_NUMBER" --json reviews -q '.reviews | length'`
-   ≥ 1 — then checkpoint:
+   must be ≥ 1 (≥ 2 in `super` mode, one review per track). If the count is short,
+   name the track that failed and why before continuing — never checkpoint a phase
+   that did not post. Then checkpoint:
    `bash "$SKILL_DIR/scripts/run_state.sh" set "$RUN_DIR" phase review-posted`.
 
-### Codex mode (`--codex`) — replaces steps 1–2
+### Codex mode (`--codex`) — a Codex orchestrator owns the whole review
 
-Review tokens come from the Codex subscription instead of the Claude one; the
-lead's verify-and-post job (steps 3–7) does not change.
+Review tokens come from the Codex subscription instead of the Claude one. This
+mode does NOT just swap the reviewers: a Codex ORCHESTRATOR session dispatches
+the reviewers, fact-checks what they return, and posts the review itself. Your
+job as lead is to prepare its inputs, launch it, and confirm the result — you do
+not verify findings and you do not post in this mode.
 
-1. Resolve the companion script of the installed `openai-codex` plugin
-   (version-agnostic — newest wins) and confirm the CLI works:
+Models are fixed: orchestrator `gpt-6-astra` at `low` effort, reviewers
+`gpt-5.6-sol` at `high` effort.
+
+Use `codex exec` directly, NOT the codex plugin's `adversarial-review` command.
+That command forwards `--model` but never forwards a reasoning effort, so the
+reviewers would silently fall back to the `model_reasoning_effort` in
+`~/.codex/config.toml` — `high` would be lost without any error.
+
+1. Confirm the CLI and locate the codex plugin's prompt template + output schema
+   (version-agnostic — newest wins):
    ```bash
-   COMPANION="$(ls "$HOME"/.claude/plugins/cache/openai-codex/codex/*/scripts/codex-companion.mjs 2>/dev/null | sort -V | tail -1)"
-   codex --version >/dev/null 2>&1 || COMPANION=""
+   codex --version || echo "CODEX MISSING"
+   CODEX_PLUGIN="$(ls -d "$HOME"/.claude/plugins/cache/openai-codex/codex/*/ 2>/dev/null | sort -V | tail -1)"
+   REVIEW_PROMPT="${CODEX_PLUGIN}prompts/adversarial-review.md"
+   REVIEW_SCHEMA="${CODEX_PLUGIN}schemas/review-output.schema.json"
+   test -f "$REVIEW_PROMPT" && test -f "$REVIEW_SCHEMA" || echo "CODEX PLUGIN ASSETS MISSING"
    ```
-   If `$COMPANION` ends up empty (plugin gone or CLI missing), say so,
-   `run_state.sh set "$RUN_DIR" review_mode agents`, and run the default steps 1–2
-   instead — never skip the review.
-2. Mirror the specialist set with one adversarial run per dimension, scaled to the
-   diff exactly like step 1 (skip dimensions with no relevant files). Step 2's
-   Move-file reviewer still runs unchanged — Codex has no Sui/Move grounding.
-   Dimension → focus text:
-   - `bugs` — no focus text (the template's default adversarial correctness stance)
+   If the CLI is missing or either file is absent, say so, then:
+   `codex` mode → `run_state.sh set "$RUN_DIR" review_mode agents` and run the
+   default steps 1–2 instead; `super` mode → drop to the agent track alone.
+   Never skip the review.
+2. Render the shared reviewer base prompt ONCE — the plugin template with its
+   placeholders filled, plus the diff the reviewers must attack:
+   ```bash
+   { echo "<diff>"; git diff "$BASE_REF"...HEAD; echo "</diff>"; } > "$RUN_DIR/codex-diff.txt"
+   sed -e "s|{{TARGET_LABEL}}|$BASE_REF...$HEAD_REF (PR #$PR_NUMBER)|" \
+       -e "s|{{USER_FOCUS}}|__FOCUS__|" \
+       -e "s|{{REVIEW_COLLECTION_GUIDANCE}}||" \
+       -e "/{{REVIEW_INPUT}}/r $RUN_DIR/codex-diff.txt" \
+       -e "/{{REVIEW_INPUT}}/d" "$REVIEW_PROMPT" \
+       > "$RUN_DIR/codex-review-base.md"
+   grep -c '{{' "$RUN_DIR/codex-review-base.md"   # MUST print 0
+   ```
+   The template carries FOUR placeholders — `{{TARGET_LABEL}}`, `{{USER_FOCUS}}`,
+   `{{REVIEW_COLLECTION_GUIDANCE}}` and `{{REVIEW_INPUT}}`. The last one is where
+   the diff belongs, inside the template's `<repository_context>` block; appending
+   the diff at the end of the file instead leaves `{{REVIEW_INPUT}}` in the prompt
+   and the reviewer reads a literal placeholder. Always run the `grep -c '{{'`
+   check and expect `0` — if the plugin adds a placeholder in a later version, that
+   check is what catches it.
+   `__FOCUS__` stays in place as a marker — the orchestrator substitutes the
+   per-dimension focus into its own copy.
+3. Write the dimension table to `$RUN_DIR/codex-dimensions.tsv`, one
+   `<dim><TAB><focus>` line per dimension. Same specialist set as agent mode,
+   scaled to the diff — drop any dimension with no relevant files:
+   - `bugs` — "correctness: logic errors, wrong state transitions, broken edge cases, off-by-one and boundary handling"
    - `silent-failures` — "silent failures: swallowed errors, empty catch blocks, fallbacks that hide failure, missing error propagation"
    - `tests` — "test coverage: new logic without tests, missing edge/failure-path cases, assertions that cannot fail"
    - `comments` — "comment and doc accuracy: comments or docs that contradict, overstate, or drift from the code they describe"
    - `types` — "type and API design: weak encapsulation, invariants not expressed in types, misuse-prone signatures"
-   Launch them in parallel from inside the worktree, one background Bash call per
-   dimension (`--wait` is the companion's own flag; detaching is the Bash call's
-   `run_in_background`), then checkpoint per step 3:
+   Move files (`*.move`, `Move.toml`) still go to the Claude `sui-pilot-agent`
+   reviewer from step 2 of the default flow, dispatched by YOU in parallel with
+   the orchestrator — Codex has no Sui/Move grounding. Hand its findings to the
+   orchestrator by writing them to `$RUN_DIR/codex-move-findings.json` in the
+   same shape as the schema before you launch, or post them yourself as a short
+   separate review if they arrive late.
+4. Write the orchestrator brief to `$RUN_DIR/codex-orchestrator.md`. It must
+   carry the coordinates and the full job — the orchestrator has no other
+   context. The heredoc is UNQUOTED on purpose — `$PR_NUMBER`, `$RUN_DIR`, `$BASE_REF`,
+   `$OWNER`, `$REPO`, `$SKILL_DIR` and `$REVIEW_SCHEMA` must expand into the
+   brief. That also means a trailing `\` would be eaten as a line continuation,
+   so the reviewer command below writes `\\` to land one literal backslash.
+   The closing `EOF` sits at COLUMN 0 on purpose and must stay there: `<<EOF`
+   matches its terminator only at the start of a line, so an indented `EOF`
+   silently swallows the rest of the block into the brief, skips the next
+   command, and still exits 0. `<<-EOF` is not a fix — it strips leading tabs
+   only, which markdown does not preserve.
    ```bash
-   node "$COMPANION" adversarial-review --wait --json --base "$BASE_REF" --scope branch "<focus>" \
-     > "$RUN_DIR/codex-<dim>.json" 2> "$RUN_DIR/codex-<dim>.err"
+   cat > "$RUN_DIR/codex-orchestrator.md" <<EOF
+   You are the review orchestrator for pull request #$PR_NUMBER of $OWNER/$REPO.
+   Repository root: $(git rev-parse --show-toplevel)
+   Base ref: $BASE_REF    Head ref: $HEAD_REF    Run dir: $RUN_DIR
+   Skill dir: $SKILL_DIR
+   Reviewer output schema: $REVIEW_SCHEMA
+
+   Do all of the following, in order, and do not stop early.
+
+   1. DISPATCH. Read $RUN_DIR/codex-dimensions.tsv. For EACH line (dimension TAB
+      focus), build its prompt and launch its reviewer. Run every dimension in
+      parallel (background each command, then wait for all of them):
+        sed "s|__FOCUS__|<focus>|" "$RUN_DIR/codex-review-base.md" > "$RUN_DIR/codex-prompt-<dim>.md"
+        codex exec -C "<repo root>" -m gpt-5.6-sol -c model_reasoning_effort=high \\
+          -s read-only --output-schema "$REVIEW_SCHEMA" \\
+          -o "$RUN_DIR/codex-<dim>.json" - < "$RUN_DIR/codex-prompt-<dim>.md" \\
+          > "$RUN_DIR/codex-<dim>.log" 2>&1
+      Do not change the model or the effort. Do not review the diff yourself
+      before the reviewers report.
+   2. COLLECT. Parse each $RUN_DIR/codex-<dim>.json with jq. A file that is
+      missing or does not parse is a FAILED dimension: record it by name and
+      never invent its findings. If every dimension failed, write
+      $RUN_DIR/codex-verdict.md saying so and stop — do not post an empty review.
+      If $RUN_DIR/codex-move-findings.json exists, fold its findings in too.
+   3. FACT-CHECK. This is your main job. For EVERY finding, open the cited file
+      at line_start..line_end and re-derive the problem from the real source.
+      Drop a finding when it is not reachable, sits on lines this PR did not
+      touch, describes intended behaviour, or is a nitpick a senior engineer
+      would not raise. Keep a one-line reason for each drop. Then dedupe
+      same-file/same-line findings across dimensions, keeping the higher
+      severity. Post only what survives.
+   4. BUILD. Write $RUN_DIR/codex-review-payload.json as
+      {"event":"COMMENT","body":"<walkthrough markdown>","comments":[{"path":...,"line":...,"side":"RIGHT","body":...}]}
+      - One comments[] entry per kept finding that has a concrete fix: the
+        rationale, then a fenced suggestion block holding the exact replacement
+        for the cited lines.
+      - Every "line" MUST appear in `git diff $BASE_REF...HEAD` as an added or
+        context line on the RIGHT side. Verify each anchor against that diff. A
+        single bad anchor makes GitHub reject the ENTIRE review.
+      - Findings with no clean line anchor go in "body" as prose, with file:line.
+      - Open "body" with exactly this line so the two tracks are told apart:
+        **Codex adversarial review** — orchestrator gpt-6-astra (low effort), reviewers gpt-5.6-sol (high effort).
+        Then list the dimensions that ran, the dimensions that failed, and the
+        number of findings you dropped in fact-check.
+   5. POST.
+        bash "$SKILL_DIR/scripts/post_review.sh" --check "$RUN_DIR/codex-review-payload.json"
+        bash "$SKILL_DIR/scripts/post_review.sh" "$OWNER" "$REPO" "$PR_NUMBER" "$RUN_DIR/codex-review-payload.json"
+      If GitHub rejects the POST, fix the anchor it names and retry once.
+   6. REPORT. Write $RUN_DIR/codex-verdict.md: what you posted, kept vs dropped
+      counts, the one-line reason for each drop, the failed dimensions, and the
+      codex session id of each reviewer.
+
+   Hard limits: review only. Do not edit, create or delete any file inside the
+   repository. Do not commit, push, approve the PR, change its draft state, or
+   touch any branch. Your only writes are inside $RUN_DIR.
+EOF
    ```
-3. When all runs finish, extract each dimension in one jq pass —
-   `jq '{threadId, result}' "$RUN_DIR/codex-<dim>.json"` — appending each
-   `threadId` to `$RUN_DIR/codex-threads.txt` (`codex resume <threadId>` reopens
-   that reviewer for a manual follow-up). `.result` is `{verdict, summary,
-   findings[{severity, title, body, file, line_start, line_end, confidence,
-   recommendation}]}`; a null `.result` with a `.parseError` means that run
-   failed — count it in the walkthrough as a failed dimension, never invent its
-   findings. If EVERY dimension failed (broken auth shows up here, not in the
-   resolver), `run_state.sh set "$RUN_DIR" review_mode agents` and run the
-   default steps 1–2 instead — never skip the review. Merge findings across
-   dimensions, dedupe same-file/same-line
-   duplicates (keep the higher severity), and hand them to step 4: `file` +
-   `line_start` anchor the re-read, `recommendation` seeds the suggestion built
-   in step 5.
+5. Launch the orchestrator as ONE background Bash call and checkpoint per step 3:
+   ```bash
+   codex exec -C "$(git rev-parse --show-toplevel)" -m gpt-6-astra \
+     -c model_reasoning_effort=low -s danger-full-access \
+     -o "$RUN_DIR/codex-orchestrator-final.md" - \
+     < "$RUN_DIR/codex-orchestrator.md" > "$RUN_DIR/codex-orchestrator.log" 2>&1
+   ```
+   `danger-full-access` is required and deliberate: the orchestrator has to spawn
+   the reviewer processes and reach the network for `gh`, which `read-only` and
+   `workspace-write` both block. The brief's hard limits are what keep it out of
+   the repo — keep them in any edit you make to the brief.
+6. When it exits, read `$RUN_DIR/codex-verdict.md` and `$RUN_DIR/codex-orchestrator.log`,
+   then go to step 7 to confirm the review landed. Report the orchestrator's
+   kept-vs-dropped counts as your own Phase 3 numbers.
+   Fallback — if the orchestrator died, never posted, or wrote no verdict: take
+   over yourself. Feed every `$RUN_DIR/codex-<dim>.json` that parses into the
+   default steps 4–6 (you fact-check, you build `$RUN_DIR/codex-review-payload.json`,
+   you post it). Say in the walkthrough that the orchestrator failed and you
+   verified the findings instead.
+
+### Super mode (`--super`) — both tracks, two posted reviews
+
+Run the Claude agent track and the Codex orchestrator track in PARALLEL, so the
+PR carries two independent consolidated reviews before you adjudicate in Phase 4.
+
+1. In ONE turn, dispatch the agent track (steps 1–2 of this phase, Opus-pinned)
+   AND launch the Codex orchestrator (Codex mode steps 1–5). Neither track waits
+   for the other.
+2. Checkpoint `review-dispatched` once, after both are out.
+3. Agent track: you still do steps 4–6 — verify the findings, build
+   `$RUN_DIR/review-payload.json`, post it. Open its walkthrough `body` with
+   exactly `**Claude agent review** — pr-review-toolkit specialists on Opus.` so
+   the two reviews are distinguishable on the PR.
+4. Codex track: the orchestrator posts its own review. Do not wait for it before
+   posting yours, and do not post on its behalf unless its fallback fires.
+5. Do NOT merge the two tracks into one review and do NOT reconcile them here.
+   Where the tracks disagree is exactly the signal Phase 4 needs; collapsing it
+   now removes the reason to run both.
+6. If one track fails, post the surviving one, name the failed track and the
+   reason, and continue. A dead track never blocks the pipeline.
 
 ## Phase 4 — Self-adjudicate
 
 You now act as the PR author deciding what to take from the review. You do NOT
-approve the PR — GitHub permissions block self-approval anyway; readiness is the
-user's call on GitHub.
+approve the PR — GitHub permissions block self-approval anyway. Readiness is no
+longer the user's call: step 5 below flips the draft to ready. Merging still is.
 
-1. Read the posted review (you built it in Phase 3, but adjudicate it fresh — author
-   hat on, reviewer hat off). For EACH inline suggestion and each walkthrough item,
-   decide ACCEPT or REJECT on its merits (correctness + fit with the codebase). Be
-   willing to reject low-value or wrong suggestions — explain why.
+1. Read the posted review from GitHub, not from your own memory of Phase 3 —
+   in `codex` mode you never saw the findings, and in `super` mode there are two
+   reviews. Fetch them:
+   `gh pr view "$PR_NUMBER" --json reviews -q '.reviews[].body'` plus
+   `gh api "repos/$OWNER/$REPO/pulls/$PR_NUMBER/comments"` for the inline
+   suggestions. Adjudicate fresh — author hat on, reviewer hat off. For EACH
+   inline suggestion and each walkthrough item, decide ACCEPT or REJECT on its
+   merits (correctness + fit with the codebase). Be willing to reject low-value
+   or wrong suggestions — explain why.
+   In `super` mode, read BOTH reviews before deciding anything. A finding both
+   tracks raise is high-confidence: take it unless you can say why both are
+   wrong. Where the tracks conflict, state which one you follow and the reason —
+   that disagreement is the whole point of running two tracks. Never average the
+   two into a vague middle position.
 2. Apply every ACCEPTED change locally by editing the file to match the suggestion. (We
    apply via local edits, not GitHub's "commit suggestion" button.)
 3. If you accepted any change:
@@ -348,10 +531,19 @@ user's call on GitHub.
    (Best-effort: to resolve individual inline threads, fetch thread ids via
    `gh api graphql` querying `pullRequest.reviewThreads` then call the
    `resolveReviewThread` mutation per id. Skip if it adds no value.)
-5. Confirm the final PR state — no approval, no ready-for-review flip:
-   `gh pr view "$PR_NUMBER" --json state,isDraft` must show OPEN, and normally still
-   a draft. (If Phase 3 had to drop draft to post the review, leave it non-draft —
-   do not re-draft it.)
+5. Flip the PR from draft to READY FOR REVIEW. The review is posted and the
+   agentic work is finished, so the PR must stop being a draft here:
+   ```bash
+   gh pr view "$PR_NUMBER" --json isDraft -q .isDraft   # true → flip, false → already ready
+   gh pr ready "$PR_NUMBER"
+   ```
+   Skip the flip when it already reports `false` (Phase 3's post fallback dropped
+   the draft). If `gh pr ready` is rejected — the repo's plan lacks draft PRs, or
+   the branch carries no commits — report the exact error and continue to Phase 5;
+   never abort the run over the flip. You still do NOT approve the PR: GitHub
+   blocks self-approval, and merging stays the user's call.
+6. Confirm the final PR state: `gh pr view "$PR_NUMBER" --json state,isDraft` must
+   show `OPEN` and `false`.
    Then checkpoint: `bash "$SKILL_DIR/scripts/run_state.sh" set "$RUN_DIR" phase adjudicated`.
 
 ## Phase 5 — Understand & pitch (explainer + opt-in quiz gate)
@@ -433,6 +625,7 @@ straight from step 1 to step 5.
    outcome — the score, the quiz.html link (headless), or "skipped; opt in with
    `--quiz`" (gate off), links to
    `$ART_DIR/explainer.html` (and `quiz.html` if written) as `vlerv://` deep-links,
-   whether the PR is still a draft, and the remaining human action on GitHub: press
-   "Ready for review" (team project), or mark it ready and merge (solo project) —
-   GitHub cannot merge a PR while it is still a draft.
+   which review tracks ran (Claude agents, Codex orchestrator, or both in `super`
+   mode) and how many reviews are posted, that Phase 4 marked the PR ready for
+   review — or the exact error if the flip was rejected — and the remaining human
+   action on GitHub: read the posted review(s) and merge.

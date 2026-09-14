@@ -70,8 +70,8 @@ case "$cmd" in
     if [[ "$key" == "pr_number" && ! "$value" =~ ^[0-9]+$ ]]; then
       die "pr_number must be numeric (got: $value)"
     fi
-    if [[ "$key" == "review_mode" && "$value" != "agents" && "$value" != "codex" ]]; then
-      die "review_mode must be agents|codex (got: $value)"
+    if [[ "$key" == "review_mode" && "$value" != "agents" && "$value" != "codex" && "$value" != "super" ]]; then
+      die "review_mode must be agents|codex|super (got: $value)"
     fi
     if [[ "$key" == "quiz_gate" && "$value" != "on" && "$value" != "off" ]]; then
       die "quiz_gate must be on|off (got: $value)"
