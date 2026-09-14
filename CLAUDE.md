@@ -119,13 +119,17 @@ analysis, explainer, design doc. Not throwaway snippets or code-only output.
   not publish with it unless I ask, even though that tool's own default allows
   proactive publishing.
 - End the turn with a clickable Vlervtifacts deep-link to every deliverable,
-  unprompted:
-  - Form: `[<filename or short title>](vlerv://open?path=<abs path>)` — never
-    a bare URL. macOS routes the `vlerv://` scheme straight to
-    `Vlervtifacts.app`.
-  - Encode everything outside RFC 3986 unreserved chars (`A-Za-z0-9-_.~`);
-    slashes become `%2F`
-  - Add `&line=N` to open the file at a line. Use
-    `vlerv://reveal?path=<abs path>` to reveal a file instead of opening it.
-  - Fallback: plain path or `file://` when Vlervtifacts doesn't apply, or the
-    user asked for a different app
+  unprompted, as `[<filename or short title>](<link>)` — never a bare URL.
+  - **When the `vlerv` MCP is loaded, MINT the link with its `share_link`
+    tool.** Do not hand-write one. This bullet exists so you reach for the
+    tool in the first place; the tool's own description has the rest.
+    A minted link carries `from=<this Mac's node id>`, which makes it open
+    locally on this Mac *and* pull on my paired phone. A hand-written
+    `vlerv://open?path=…` has no origin device, so it works here and fails
+    on every other device with "canonicalize failed".
+  - Without the MCP, fall back to `vlerv://open?path=<abs path>`, and know it
+    is Mac-only. Encode everything outside RFC 3986 unreserved chars
+    (`A-Za-z0-9-_.~`); slashes become `%2F`. `&line=N` opens at a line;
+    `vlerv://reveal?path=…` reveals instead of opening.
+  - Fallback: plain path or `file://` when Vlervtifacts doesn't apply, or I
+    asked for a different app.
