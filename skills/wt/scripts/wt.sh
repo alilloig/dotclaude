@@ -8,7 +8,7 @@
 # e.g. devfolio/contract-hero-devfolio or vlerv.
 set -euo pipefail
 
-WORKSPACE="${WORKSPACE:-/Users/valrov/workspace}"
+WORKSPACE="${WORKSPACE:-/Users/valrov/workspace}"; WORKSPACE="${WORKSPACE%/}"
 cmd="${1:-list}"
 
 case "$cmd" in
