@@ -118,18 +118,18 @@ analysis, explainer, design doc. Not throwaway snippets or code-only output.
   never auto-publish. This rule also covers the built-in `Artifact` tool: do
   not publish with it unless I ask, even though that tool's own default allows
   proactive publishing.
-- End the turn with a clickable Vlervtifacts deep-link to every deliverable,
+- End the turn with a clickable skypies deep-link to every deliverable,
   unprompted, as `[<filename or short title>](<link>)` — never a bare URL.
-  - **When the `vlerv` MCP is loaded, MINT the link with its `share_link`
+  - **When the `skypies` MCP is loaded, MINT the link with its `share_link`
     tool.** Do not hand-write one. This bullet exists so you reach for the
     tool in the first place; the tool's own description has the rest.
     A minted link carries `from=<this Mac's node id>`, which makes it open
     locally on this Mac *and* pull on my paired phone. A hand-written
-    `vlerv://open?path=…` has no origin device, so it works here and fails
+    `skypies://open?path=…` has no origin device, so it works here and fails
     on every other device with "canonicalize failed".
-  - Without the MCP, fall back to `vlerv://open?path=<abs path>`, and know it
+  - Without the MCP, fall back to `skypies://open?path=<abs path>`, and know it
     is Mac-only. Encode everything outside RFC 3986 unreserved chars
     (`A-Za-z0-9-_.~`); slashes become `%2F`. `&line=N` opens at a line;
-    `vlerv://reveal?path=…` reveals instead of opening.
-  - Fallback: plain path or `file://` when Vlervtifacts doesn't apply, or I
+    `skypies://reveal?path=…` reveals instead of opening.
+  - Fallback: plain path or `file://` when skypies doesn't apply, or I
     asked for a different app.
