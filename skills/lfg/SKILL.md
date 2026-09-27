@@ -605,7 +605,7 @@ straight from step 1 to step 5.
    jq -e '(.quiz_gate // "off") != "on" or .phase == "quiz-passed"' "$RUN_DIR/state.json"
    ```
    If that check fails, you may not create the file — go back to step 4 (or, on an
-   interactive bail-out, to step 6). Do not pre-draft explainer content anywhere —
+   interactive bail-out, go straight to Phase 7 — never step 6). Do not pre-draft explainer content anywhere —
    not in a scratch file, not "to save time", and never in the same turn that asks
    quiz questions: an interactive AskUserQuestion round must END the turn with the
    questions pending, with zero explainer work done. This gate exists because
@@ -637,8 +637,10 @@ Entry check — run this phase only when the recorded phase is `explained`, and 
 for a headless run with the quiz gate on (nobody has passed quiz.html yet; the user
 merges after they pass it):
 ```bash
-jq -e '.phase == "explained" and ((.quiz_gate // "off") != "on" or env.CLAUDE_JOB_DIR == null)' "$RUN_DIR/state.json"
+jq -e '.phase == "explained" and ((.quiz_gate // "off") != "on" or env.CLAUDE_JOB_DIR == null)' "$RUN_DIR/state.json" \
+  && [ "$(gh pr view "$PR_NUMBER" --json reviews -q '.reviews | length')" -ge 1 ]
 ```
+The second test refuses to merge a PR that carries no posted review.
 A failed check → skip to Phase 7 and report that the PR stays open and ready.
 
 Any gate below that fails is a STOP for this phase only: report the exact reason,
@@ -652,12 +654,13 @@ worktree because the PR is still open). Never merge red, never pass `--admin`.
    `0` while the repo has workflows (`ls .github/workflows` is non-empty) usually
    means the checks for the last push are not registered yet — wait ~30 s and
    count again, once. Still `0` → the repo has no CI; continue to step 2.
-   Otherwise block until they finish:
+   Otherwise block until they finish — as a BACKGROUND Bash call, because CI often
+   outlasts the foreground tool timeout:
    ```bash
    gh pr checks "$PR_NUMBER" --watch --fail-fast
    ```
-   Exit 0 = all green. Any other exit → STOP; include the `gh pr checks "$PR_NUMBER"`
-   table in the report.
+   A tool timeout is not a CI failure: run it again. Exit 0 = all green. Any
+   other exit → STOP; include the `gh pr checks "$PR_NUMBER"` table in the report.
 2. **Mergeable.** `gh pr view "$PR_NUMBER" --json mergeable,mergeStateStatus`.
    `mergeable` = `UNKNOWN` means GitHub is still computing — re-query up to 3 times,
    ~10 s apart. `CONFLICTING` → STOP. `mergeStateStatus` = `BLOCKED` (a required
@@ -679,19 +682,25 @@ worktree because the PR is still open). Never merge red, never pass `--admin`.
 
 ## Phase 7 — Wrap up (kthxbai)
 
-Invoke the `kthxbai` skill. It runs all its phases — persist memories + replace the
+First refresh the remote refs, so kthxbai can see the squash commit on the default
+branch before it deletes the branch: `git -C "$MAIN_CHECKOUT" fetch origin`.
+
+Then invoke the `kthxbai` skill. It runs all its phases — persist memories + replace the
 project checkpoint + sweep the index, retire the branch and worktree, refresh the
 plugin when the session touched one, report. Tell it, in the invocation:
 
 - the PR number, its state after Phase 6 (`MERGED`, or `OPEN` with the Phase 6 stop
   reason), and that the merge was a SQUASH — so `git branch -d` refuses and
   kthxbai's verified `-D` path applies;
-- the worktree to remove (`$(git rev-parse --show-toplevel)`) and the main checkout
-  to move to (`$MAIN_CHECKOUT` from Phase 5 step 1 — recompute it the same way on a
+- the worktree to remove (`bash "$SKILL_DIR/scripts/run_state.sh" get "$RUN_DIR" repo_root`
+  — not `--show-toplevel`, which names the main checkout on a resume) and the main
+  checkout to move to (`$MAIN_CHECKOUT` from Phase 5 step 1 — recompute it the same way on a
   resume);
 - that `$ART_DIR` lives in the main checkout and must be kept;
-- that this work has landed, so its project checkpoint is deleted or advanced, not
-  left pointing at this PR as the next action.
+- when MERGED: this work has landed, so its project checkpoint is deleted or
+  advanced, not left pointing at this PR as the next action. When OPEN: the
+  checkpoint's next action is "merge PR #N", with the Phase 6 stop reason;
+- that its report does NOT end the turn here — lfg continues with the steps below.
 
 Headless (`CLAUDE_JOB_DIR` set): nobody can answer kthxbai's plugin-refresh
 question — skip that phase and list it under open items.
