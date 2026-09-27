@@ -2,10 +2,10 @@
 name: lfg
 description: |
   One-command "ship + harden + review + adjudicate + explain + merge + wrap up"
-  pipeline for a pull request. Runs seven phases from the main session: (1) preflight moves the
-  work into a fresh git worktree under `.claude/worktrees/` if it is sitting in
-  the main checkout, then /commit-push-pr branches, commits, pushes and opens a
-  DRAFT PR; (2) /simplify then a second commit; (3) the pr-review-toolkit review
+  pipeline for a pull request. Runs seven phases from the main session: (1)
+  preflight moves the work into a fresh git worktree under `.claude/worktrees/`
+  if it is sitting in the main checkout, then /commit-push-pr branches, commits,
+  pushes and opens a DRAFT PR; (2) /simplify then a second commit; (3) the pr-review-toolkit review
   skill fans out fresh-context specialist reviewers (pinned to Opus) — or, with
   the `--codex` flag, a Codex ORCHESTRATOR session (gpt-6-astra, low effort) that
   dispatches one adversarial Codex reviewer per dimension (gpt-5.6-sol, high
@@ -43,7 +43,7 @@ description: |
   only wants to commit without opening/reviewing a PR (use /commit or /commit-push-pr).
 ---
 
-# /lfg — ship, harden, review, adjudicate
+# /lfg — ship, harden, review, adjudicate, merge, wrap up
 
 Run the full pipeline from the MAIN session, preferably interactively — headless/background
 runs work but budget several minutes for the review fan-out.
@@ -82,7 +82,10 @@ anything sitting in your context:
      `git worktree list --porcelain | sed -n 's/^worktree //p'` — never a substring
      grep, since a crafted `repo_root` that merely prefixes a real path would pass.
      On an exact hit the run is still yours; re-enter that worktree and resume from
-     inside it. Report truly non-matching runs; never adopt them.
+     inside it. A `repo_root` that no longer exists is a run whose Phase 7 already
+     removed the worktree: claim it only if the checks below show its PR MERGED with a
+     matching `head_ref`, and resume Phase 7 from the main checkout. Report truly
+     non-matching runs; never adopt them.
    - **Liveness & integrity:** load `PR_NUMBER` from the run (`run_state.sh get "<run_dir>" pr_number`;
      non-zero exit = unset — skip this check). Require it purely numeric — anything else
      means a tampered/corrupt state file: mark the run `aborted` and do NOT resume.
@@ -90,9 +93,7 @@ anything sitting in your context:
      — a MERGED PR whose recorded phase is `explained` or `merged` means Phase 6
      merged it and the wrap-up did not finish: resume at Phase 7. Any other
      MERGED/CLOSED PR means the run already finished or died; set its phase to
-     `complete`/`aborted` accordingly and do NOT resume it. If the recorded
-     `repo_root` no longer exists because Phase 7 already removed the worktree,
-     resume Phase 7 from the main checkout instead of failing the ownership check. Then cross-check the run's
+     `complete`/`aborted` accordingly and do NOT resume it. Then cross-check the run's
      recorded `head_ref` (`run_state.sh get "<run_dir>" head_ref`) against
      `gh pr view "$PR_NUMBER" --json headRefName -q .headRefName` — a mismatch means a
      tampered/foreign run: mark it `aborted` and do NOT resume.
@@ -588,9 +589,10 @@ straight from step 1 to step 5.
      rephrased variant in a later batch. The gate is a fully correct round. Only
      when the user has answered every question in a round correctly, checkpoint:
      `bash "$SKILL_DIR/scripts/run_state.sh" set "$RUN_DIR" phase quiz-passed`.
-     If the user wants to bail out instead, do NOT record `quiz-passed`; skip to
-     step 6's checkpoint, and report that the explainer was skipped because the
-     quiz gate was not passed. A bail-out also blocks the merge — Phase 6 skips.
+     If the user wants to bail out instead, do NOT record `quiz-passed` or
+     `explained`: skip the explainer AND Phase 6, go straight to Phase 7, and
+     report that the explainer and the merge were skipped because the quiz gate
+     was not passed.
    - **Headless** (`CLAUDE_JOB_DIR` set): nobody is there to answer. Write
      `$ART_DIR/quiz.html` — self-contained, inline JS/CSS, no external requests —
      that grades itself and reveals the link to `explainer.html` only on a perfect
@@ -626,49 +628,52 @@ straight from step 1 to step 5.
      trusted 90%), findings accepted/rejected from the review with one-line
      reasons, and the PR link.
    - Keep it one scroll for the main story; depth goes in collapsible sections.
-6. Checkpoint: `bash "$SKILL_DIR/scripts/run_state.sh" set "$RUN_DIR" phase explained`.
+6. Checkpoint: `bash "$SKILL_DIR/scripts/run_state.sh" set "$RUN_DIR" phase explained`
+   (only after the explainer exists — Phase 6 treats `explained` as its entry ticket).
 
 ## Phase 6 — Merge (squash, gated on CI)
 
-The review is adjudicated and the explainer exists, so the PR merges now. Skip this
-phase when the run recorded `quiz_gate` on and the quiz was bailed out (the phase
-never reached `quiz-passed`): report that the PR stays ready and go to Phase 7.
+Entry check — run this phase only when the recorded phase is `explained`, and not
+for a headless run with the quiz gate on (nobody has passed quiz.html yet; the user
+merges after they pass it):
+```bash
+jq -e '.phase == "explained" and ((.quiz_gate // "off") != "on" or env.CLAUDE_JOB_DIR == null)' "$RUN_DIR/state.json"
+```
+A failed check → skip to Phase 7 and report that the PR stays open and ready.
 
 Any gate below that fails is a STOP for this phase only: report the exact reason,
 leave the PR open and ready, and go to Phase 7 (its branch gate keeps the branch and
 worktree because the PR is still open). Never merge red, never pass `--admin`.
 
-1. **Local = remote.** `git status -sb` must show no `ahead`/`behind` and
-   `git status --porcelain` must be empty — the merge must ship exactly what was
-   reviewed.
-2. **CI.** Count the checks:
+1. **CI.** Count the checks:
    ```bash
    gh pr view "$PR_NUMBER" --json statusCheckRollup -q '.statusCheckRollup | length'
    ```
    `0` while the repo has workflows (`ls .github/workflows` is non-empty) usually
    means the checks for the last push are not registered yet — wait ~30 s and
-   count again, once. Still `0` → the repo has no CI; continue to step 3.
+   count again, once. Still `0` → the repo has no CI; continue to step 2.
    Otherwise block until they finish:
    ```bash
    gh pr checks "$PR_NUMBER" --watch --fail-fast
    ```
    Exit 0 = all green. Any other exit → STOP; include the `gh pr checks "$PR_NUMBER"`
    table in the report.
-3. **Mergeable.** `gh pr view "$PR_NUMBER" --json mergeable,mergeStateStatus`.
+2. **Mergeable.** `gh pr view "$PR_NUMBER" --json mergeable,mergeStateStatus`.
    `mergeable` = `UNKNOWN` means GitHub is still computing — re-query up to 3 times,
    ~10 s apart. `CONFLICTING` → STOP. `mergeStateStatus` = `BLOCKED` (a required
    review or another branch-protection rule) → STOP; do not bypass it.
-4. **Merge:**
+3. **Merge:**
    ```bash
    gh pr merge "$PR_NUMBER" --squash --match-head-commit "$(git rev-parse HEAD)"
    ```
-   - `--match-head-commit` makes GitHub refuse the merge if someone pushed to the
-     branch after your last push. A refusal here → STOP.
+   - `--match-head-commit` makes GitHub refuse the merge unless the PR head is your
+     local HEAD — so unpushed local commits and foreign pushes both block it and
+     the merge ships exactly what was reviewed. A refusal here → STOP.
    - No `--delete-branch`: gh then tries to switch the local checkout to the
      default branch, which fails inside a linked worktree. Phase 7 deletes the
      branch.
    - GitHub's squash subject is the PR title plus `(#N)` — keep it.
-5. **Verify** `gh pr view "$PR_NUMBER" --json state,mergeCommit` shows `MERGED`
+4. **Verify** `gh pr view "$PR_NUMBER" --json state,mergeCommit` shows `MERGED`
    and a merge commit. Then checkpoint:
    `bash "$SKILL_DIR/scripts/run_state.sh" set "$RUN_DIR" phase merged`.
 
@@ -682,7 +687,8 @@ plugin when the session touched one, report. Tell it, in the invocation:
   reason), and that the merge was a SQUASH — so `git branch -d` refuses and
   kthxbai's verified `-D` path applies;
 - the worktree to remove (`$(git rev-parse --show-toplevel)`) and the main checkout
-  to move to (`$MAIN_CHECKOUT`);
+  to move to (`$MAIN_CHECKOUT` from Phase 5 step 1 — recompute it the same way on a
+  resume);
 - that `$ART_DIR` lives in the main checkout and must be kept;
 - that this work has landed, so its project checkpoint is deleted or advanced, not
   left pointing at this PR as the next action.
