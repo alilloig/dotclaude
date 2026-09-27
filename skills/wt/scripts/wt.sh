@@ -8,13 +8,13 @@
 # e.g. devfolio/contract-hero-devfolio or vlerv.
 set -euo pipefail
 
-WORKSPACE="${WORKSPACE:-/Users/valrov/workspace}"
+WORKSPACE="${WORKSPACE:-/Users/valrov/workspace}"; WORKSPACE="${WORKSPACE%/}"
 cmd="${1:-list}"
 
 case "$cmd" in
   list)
     # depth 1 and 2 git repos, skip the workspace repo itself and its .claude worktrees
-    find "$WORKSPACE" -mindepth 2 -maxdepth 3 -name .git -not -path "*/.claude/*" -not -path "*/*-worktrees/*" 2>/dev/null \
+    find "$WORKSPACE" -mindepth 2 -maxdepth 3 -name .git -not -path "$WORKSPACE/.claude/*" -not -path "*/*-worktrees/*" 2>/dev/null \
       | sed -e 's#/\.git$##' -e "s#^$WORKSPACE/##" | sort
     ;;
   add)
