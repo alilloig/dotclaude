@@ -40,7 +40,9 @@ absolute path — the worktree Bash guard rejects `~`).
    - otherwise `AskUserQuestion`: ask for a branch name, offer
      `wt/<short-topic>` style suggestions from the user's stated task if known.
    An existing local branch is checked out as-is; a new one is created from
-   `origin/<default>`.
+   `origin/<default>` (fallback `origin/main`, `origin/master`). A repo with no
+   `origin` remote (local-only) uses local `main`, then `master`, then its
+   current HEAD.
 4. Run `bash /Users/valrov/.claude/skills/wt/scripts/wt.sh add <rel-repo> <branch>`.
 5. `cd` into the printed path for the rest of the session and confirm in one
    line: path, branch, base. If the project has a CLAUDE.md, read it now.
