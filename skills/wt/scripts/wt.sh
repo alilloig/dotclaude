@@ -24,14 +24,28 @@ case "$cmd" in
     [ -d "$src/.git" ] || [ -f "$src/.git" ] || { echo "not a repo: $src" >&2; exit 1; }
     [ -e "$dst/.git" ] && { echo "already a worktree: $dst"; exit 0; }
     mkdir -p "$(dirname "$dst")"
-    default="$(git -C "$src" symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's#^origin/##' || echo main)"
-    git -C "$src" fetch origin "$default" --quiet || true
+    # base: origin/<default> when the repo has an origin, else the local default branch
+    base=""
+    if git -C "$src" remote get-url origin >/dev/null 2>&1; then
+      default="$(git -C "$src" symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's#^origin/##' || true)"
+      for b in $default main master; do
+        git -C "$src" fetch origin "$b" --quiet 2>/dev/null || true
+        if git -C "$src" show-ref --verify --quiet "refs/remotes/origin/$b"; then base="origin/$b"; break; fi
+      done
+    fi
+    if [ -z "$base" ]; then
+      for b in main master; do
+        if git -C "$src" show-ref --verify --quiet "refs/heads/$b"; then base="$b"; break; fi
+      done
+    fi
+    [ -n "$base" ] || base="$(git -C "$src" rev-parse --abbrev-ref HEAD)"
     if git -C "$src" show-ref --verify --quiet "refs/heads/$branch"; then
       git -C "$src" worktree add "$dst" "$branch"
+      base="existing branch"
     else
-      git -C "$src" worktree add -b "$branch" "$dst" "origin/$default"
+      git -C "$src" worktree add -b "$branch" "$dst" "$base"
     fi
-    echo "worktree ready: $dst (branch $branch, base origin/$default)"
+    echo "worktree ready: $dst (branch $branch, base $base)"
     ;;
   *) echo "usage: wt.sh list | add <rel-repo> <branch>" >&2; exit 2;;
 esac
