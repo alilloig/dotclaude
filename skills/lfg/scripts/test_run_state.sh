@@ -45,7 +45,7 @@ for i in "${!KEYS[@]}"; do
 done
 
 # --- every allowed phase round-trips (hyphenated ones included) ---
-for p in preflight shipped simplified review-dispatched review-posted adjudicated quiz-passed complete aborted; do
+for p in preflight shipped simplified review-dispatched review-posted adjudicated quiz-passed explained merged complete aborted; do
   if bash "$RS" set "$RUN" phase "$p" > /dev/null 2>&1 && [[ "$(bash "$RS" get "$RUN" phase)" == "$p" ]]; then
     pass "phase: '$p' accepted and round-trips"
   else

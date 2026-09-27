@@ -301,8 +301,8 @@ Order matters here — most failures in this phase come from getting it wrong.
 5. **Delete the remote branch** only if it still exists — GitHub's auto-delete
    usually handled it: `git push origin --delete "$BRANCH"`.
 
-6. **Prune the empty parent.** The user's worktrees live in
-   `<project>-worktrees/`. `rmdir` it when it is empty; leave it otherwise.
+6. **Prune the empty parent.** Worktrees live in `<project>/.claude/worktrees/`.
+   `rmdir` it when it is empty; leave it otherwise.
 
 ---
 

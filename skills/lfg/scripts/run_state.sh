@@ -10,13 +10,13 @@
 #   run_state.sh get  <RUN_DIR> [key]          # print whole JSON, or one key's raw value
 # Keys:   phase pr_number base_ref head_ref roster consolidator run_token repo_root skill_dir review_mode quiz_gate
 #         ("roster" takes a comma-separated list, stored as a JSON array)
-# Phases: preflight|shipped|simplified|review-dispatched|review-posted|adjudicated|quiz-passed|complete|aborted
+# Phases: preflight|shipped|simplified|review-dispatched|review-posted|adjudicated|quiz-passed|explained|merged|complete|aborted
 # Exits non-zero on: unknown key, unknown phase value, missing state file, missing key,
 #                    init over an in-flight run without --force.
 set -euo pipefail
 
 ALLOWED_KEYS="phase pr_number base_ref head_ref roster consolidator run_token repo_root skill_dir review_mode quiz_gate"
-ALLOWED_PHASES="preflight shipped simplified review-dispatched review-posted adjudicated quiz-passed complete aborted"
+ALLOWED_PHASES="preflight shipped simplified review-dispatched review-posted adjudicated quiz-passed explained merged complete aborted"
 
 die() { echo "run_state.sh: $*" >&2; exit 1; }
 
