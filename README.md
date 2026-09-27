@@ -80,7 +80,7 @@ Move code-quality/code-review live in the **sui-pilot plugin** (contract-hero ma
 | `cli-documentation-verification` | Verifies CLI tool docs against the actual installed binary |
 | `corpus-qa-skill-pattern` | Architectural pattern for building Q&A skills over large doc corpora |
 | `marp-slide-content` | Turns source material into well-structured generic Marp slide markdown |
-| `lfg` | One-command ship + harden + review + adjudicate pipeline for a PR |
+| `lfg` | One-command ship + harden + review + adjudicate + merge + wrap-up pipeline for a PR |
 | `stepped-pr` | Co-review a PR file-by-file with the user |
 | `cli-agent-mcp-integration` | Pattern for integrating external CLI agents via MCP server mode |
 | `git-submodule-add` | Adds a new git submodule with the user's preferred pattern (`branch = main` + `update = merge` so a single command fast-forwards every submodule to its declared branch tip) |
