@@ -8,7 +8,7 @@ description: |
   pushes and opens a DRAFT PR; (2) /simplify then a second commit; (3) the pr-review-toolkit review
   skill fans out fresh-context specialist reviewers (pinned to Opus) — or, with
   the `--codex` flag, a Codex ORCHESTRATOR session (gpt-6-astra, low effort) that
-  dispatches one adversarial Codex reviewer per dimension (gpt-5.6-sol, high
+  dispatches one adversarial Codex reviewer per dimension (gpt-6.1-sol, high
   effort), fact-checks their findings and posts them itself; `--super` runs BOTH
   tracks in parallel and posts two independent reviews. Either way the findings
   land as a GitHub PR review with inline ```suggestion blocks and a walkthrough;
@@ -338,7 +338,7 @@ job as lead is to prepare its inputs, launch it, and confirm the result — you 
 not verify findings and you do not post in this mode.
 
 Models are fixed: orchestrator `gpt-6-astra` at `low` effort, reviewers
-`gpt-5.6-sol` at `high` effort.
+`gpt-6.1-sol` at `high` effort.
 
 Use `codex exec` directly, NOT the codex plugin's `adversarial-review` command.
 That command forwards `--model` but never forwards a reasoning effort, so the
@@ -418,7 +418,7 @@ reviewers would silently fall back to the `model_reasoning_effort` in
       focus), build its prompt and launch its reviewer. Run every dimension in
       parallel (background each command, then wait for all of them):
         sed "s|__FOCUS__|<focus>|" "$RUN_DIR/codex-review-base.md" > "$RUN_DIR/codex-prompt-<dim>.md"
-        codex exec -C "<repo root>" -m gpt-5.6-sol -c model_reasoning_effort=high \\
+        codex exec -C "<repo root>" -m gpt-6.1-sol -c model_reasoning_effort=high \\
           -s read-only --output-schema "$REVIEW_SCHEMA" \\
           -o "$RUN_DIR/codex-<dim>.json" - < "$RUN_DIR/codex-prompt-<dim>.md" \\
           > "$RUN_DIR/codex-<dim>.log" 2>&1
@@ -446,7 +446,7 @@ reviewers would silently fall back to the `model_reasoning_effort` in
         single bad anchor makes GitHub reject the ENTIRE review.
       - Findings with no clean line anchor go in "body" as prose, with file:line.
       - Open "body" with exactly this line so the two tracks are told apart:
-        **Codex adversarial review** — orchestrator gpt-6-astra (low effort), reviewers gpt-5.6-sol (high effort).
+        **Codex adversarial review** — orchestrator gpt-6-astra (low effort), reviewers gpt-6.1-sol (high effort).
         Then list the dimensions that ran, the dimensions that failed, and the
         number of findings you dropped in fact-check.
    5. POST.
