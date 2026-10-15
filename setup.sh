@@ -45,6 +45,30 @@ if git -C "$REPO_DIR" rev-parse --is-inside-work-tree &>/dev/null; then
     echo "✓ settings.json marked skip-worktree (machine-local plugin state)"
 fi
 
+# --- 1c. Baseline plugins ---
+# Plugins that every machine gets. Enable state stays machine-local (1b), so
+# this list is the only tracked record. Re-running is safe: add/install are
+# idempotent and a failure only warns.
+echo ""
+echo "--- Baseline plugins ---"
+add_marketplace() {
+    if claude plugin marketplace add "$1" &>/dev/null; then
+        echo "✓ marketplace $1"
+    else
+        echo "! marketplace $1 could not be added"
+    fi
+}
+add_plugin() {
+    if claude plugin install "$1" --scope user &>/dev/null; then
+        echo "✓ plugin $1"
+    else
+        echo "! plugin $1 could not be installed"
+    fi
+}
+
+add_marketplace "mattpocock/skills"
+add_plugin "mattpocock-skills@mattpocock"
+
 # --- 2. Plugin hook permissions ---
 # Some plugins ship hook scripts without +x, which makes SessionStart (or other
 # hook events) fail with "permission denied". Recurs after plugin updates since
