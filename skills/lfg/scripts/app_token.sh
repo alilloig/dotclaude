@@ -21,8 +21,13 @@ die() { echo "app_token.sh: $*" >&2; exit 3; }
 
 load_config() {  # returns 1 only when there is no config file; a broken one dies (exit 3)
   [[ -f "$CONFIG" ]] || return 1
+  # Dry-run the source in a subshell first: under set -eu a failing line or an unset
+  # variable would exit this script with its own code (1/2) and look like "not configured".
   # shellcheck disable=SC1090
-  source "$CONFIG" || die "cannot source $CONFIG"
+  ( source "$CONFIG" ) > /dev/null 2>&1 \
+    || die "cannot source $CONFIG (syntax error, failing command, or unset variable)"
+  # shellcheck disable=SC1090
+  source "$CONFIG"
   [[ -n "${LFG_REVIEWER_APP_ID:-}" ]] || die "LFG_REVIEWER_APP_ID is empty in $CONFIG"
   [[ -r "${LFG_REVIEWER_APP_KEY:-}" ]] || die "LFG_REVIEWER_APP_KEY is not a readable file: '${LFG_REVIEWER_APP_KEY:-}' (use an absolute path)"
 }
