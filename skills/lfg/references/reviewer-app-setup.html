@@ -61,7 +61,7 @@ footer { color: var(--fg-muted); font-size: .9em; padding: 2rem 1.25rem; }
 
 <section id="summary">
   <h2>Summary</h2>
-  <p>The <code>lfg</code> skill now posts reviews as a GitHub App bot. The bot approves the PR when a fresh re-checker confirms that each finding is fixed or validly refuted. Phase 6 merges only with a current bot approval.</p>
+  <p>The <code>lfg</code> skill now posts reviews as a GitHub App bot. The bot approves the PR when a fresh re-checker confirms that each finding is fixed or validly refuted. On repos where the App is installed, Phase 6 merges only with a current bot approval.</p>
   <p>You must do steps 1–4 by hand once. GitHub requires a browser for App creation. Until you do them, <code>lfg</code> works as before: reviews post as you, and there is no approval gate.</p>
 </section>
 
@@ -137,7 +137,7 @@ footer { color: var(--fg-muted); font-size: .9em; padding: 2rem 1.25rem; }
     <li>In the App settings, open <b>Install App</b> and select your account.</li>
     <li>Select <b>All repositories</b>. New repos then get the bot automatically.</li>
   </ol>
-  <aside><p><strong>Repos without the App.</strong> On a repo where the App is not installed (for example, an organization repo), <code>lfg</code> records <code>reviewer_login = none</code>. It then posts as you and skips the approval and the merge gate.</p></aside>
+  <aside><p><strong>Repos without the App.</strong> On a repo where the App is not installed (for example, an organization repo), <code>lfg</code> records <code>reviewer_login = none</code>. It then posts as you and skips the bot re-check and approval. Phase 6 skips only the approval gate; the CI and mergeable gates still apply.</p></aside>
 </section>
 
 <section id="config">
@@ -176,7 +176,7 @@ bash $S/app_token.sh &lt;owner&gt; &lt;repo&gt; | wc -c          # expect ~40+; 
     <thead><tr><th>File</th><th>Change</th></tr></thead>
     <tbody>
       <tr><td><code>scripts/app_token.sh</code></td><td>New. Signs an RS256 JWT with <code>openssl</code>, finds the repo installation, and mints a token. The token is limited to one repo with <code>pull_requests:write</code> and <code>contents:read</code>.</td></tr>
-      <tr><td><code>scripts/post_review.sh</code></td><td>Posts as the bot when it gets a token. If not, it falls back to you for <code>COMMENT</code> only. It accepts <code>APPROVE</code> and <code>REQUEST_CHANGES</code> events.</td></tr>
+      <tr><td><code>scripts/post_review.sh</code></td><td>Posts as the bot when it gets a token. It falls back to you (<code>COMMENT</code> only) when there is no config or the App is not installed; any other App error stops the post. <code>APPROVE</code> and <code>REQUEST_CHANGES</code> need <code>--verdict</code>, which only Phase 4 step 7 passes.</td></tr>
       <tr><td><code>scripts/run_state.sh</code> + test</td><td>New keys <code>reviewer_login</code> and <code>review_round</code>, with validation. All tests pass.</td></tr>
       <tr><td><code>SKILL.md</code> Phase 0</td><td>New "Reviewer App" section: it resolves the bot login for each repo.</td></tr>
       <tr><td><code>SKILL.md</code> Phase 3</td><td>The first review is always <code>COMMENT</code>. The Codex orchestrator still must not approve.</td></tr>
@@ -184,7 +184,6 @@ bash $S/app_token.sh &lt;owner&gt; &lt;repo&gt; | wc -c          # expect ~40+; 
       <tr><td><code>SKILL.md</code> Phase 6</td><td>Merge gate: the bot's latest review must be <code>APPROVED</code> on the current head commit.</td></tr>
     </tbody>
   </table>
-  <p><small>The changes are not committed. They are in the working tree of the dotclaude repo.</small></p>
 </section>
 
 </main>

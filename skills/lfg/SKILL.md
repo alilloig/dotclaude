@@ -16,7 +16,8 @@ description: |
   (4) the main session accepts/rejects each suggestion, lands accepted ones as a
   third commit, and flips the PR from draft to READY FOR REVIEW; a fresh
   re-checker then confirms every finding is fixed or validly refuted, and the
-  reviewer App APPROVES the PR (up to 2 rounds); (5) build a
+  reviewer App (when installed on the repo) APPROVES the PR or, after 2 failed
+  rounds, requests changes; (5) build a
   visual explainer.html that pitches the change to reviewers/stakeholders; with
   `--quiz`, an understanding gate (inline quiz when interactive, self-grading
   quiz.html when headless) runs first; (6) squash-merge the PR once CI is green
@@ -237,17 +238,22 @@ to the `.pem`, mode 600). `scripts/app_token.sh` mints a repo-scoped installatio
 token from it; `scripts/post_review.sh` uses it automatically. Resolve the identity
 for THIS repo in Phase 0 step 6:
 ```bash
-LOGIN=none
-if bash "$SKILL_DIR/scripts/app_token.sh" --configured \
-   && bash "$SKILL_DIR/scripts/app_token.sh" "$OWNER" "$REPO" > /dev/null; then
-  LOGIN="$(bash "$SKILL_DIR/scripts/app_token.sh" --login)"
+LOGIN=none; rc=0
+bash "$SKILL_DIR/scripts/app_token.sh" --configured || rc=$?
+if [ "$rc" = 0 ]; then
+  bash "$SKILL_DIR/scripts/app_token.sh" "$OWNER" "$REPO" > /dev/null || rc=$?
+  [ "$rc" = 0 ] && { LOGIN="$(bash "$SKILL_DIR/scripts/app_token.sh" --login)" || rc=3; }
 fi
-bash "$SKILL_DIR/scripts/run_state.sh" set "$RUN_DIR" reviewer_login "$LOGIN"
+case "$rc" in
+  0|1|4) bash "$SKILL_DIR/scripts/run_state.sh" set "$RUN_DIR" reviewer_login "$LOGIN" ;;
+  *) echo "STOP: reviewer App configured but failing (exit $rc)" ;;
+esac
 ```
-`none` (no config, or the App is not installed on this repo) → reviews post as the
-gh user, Phase 4 step 7 is skipped, and Phase 6 has no approval gate. Configured but
-the token call fails with an error other than "not installed" → report the error
-once; the run continues with `none`. Never print or log a minted token.
+Exit codes: `1` = no config, `4` = App not installed on this repo → `none`: reviews
+post as the gh user, Phase 4 step 7 is skipped, and Phase 6 skips only the approval
+gate. Any other code (broken config, bad key, API error) → STOP: checkpoint
+`phase aborted` and report the error — never continue with `none`, because that
+would quietly turn the approval gate off. Never print or log a minted token.
 
 ## Phase 1 — Ship (/commit-push-pr, as a DRAFT)
 
@@ -582,13 +588,21 @@ Phase 6 merges it.
    show `OPEN` and `false`.
 7. **Re-check and bot approval** — only when `reviewer_login` in the run state is
    not `none`; otherwise go to step 8. Max 2 rounds. Each round:
-   1. `set "$RUN_DIR" review_round <N>`. (Resume: an existing
-      `$RUN_DIR/recheck-r<N>.json` means round N already ran — continue from its gate.)
+   1. `set "$RUN_DIR" review_round <N>`, and snapshot what was actually posted, so
+      the re-checker can catch a finding the ledger left out:
+      ```bash
+      { gh api --paginate "repos/$OWNER/$REPO/pulls/$PR_NUMBER/reviews"
+        gh api --paginate "repos/$OWNER/$REPO/pulls/$PR_NUMBER/comments"; } \
+        | jq -s . > "$RUN_DIR/posted-reviews.json"
+      ```
+      (Resume: an existing `$RUN_DIR/recheck-r<N>.json` means round N already ran —
+      continue from its gate.)
    2. Dispatch ONE fresh, read-only re-checker. It is a reviewer, not you: you
       wrote the fixes and the refutations, so you never grade them. Track by
       `review_mode`: `agents`/`super` → an `Agent` with `model: "opus"`; `codex` →
       `codex exec -m gpt-6.1-sol -c model_reasoning_effort=high -s read-only
       -o "$RUN_DIR/recheck-r<N>.json"`. Brief it with the PR number, `findings.json`,
+      `posted-reviews.json`,
       `adjudication.md` (plus every later round's reply), and the commands
       `git diff "$BASE_REF"...HEAD` and the fix commits' diffs. Its job, per id:
       - `fixed` — an ACCEPTED finding whose problem is gone in the current code
@@ -596,6 +610,9 @@ Phase 6 merges it.
       - `refutation_accepted` — a REJECTED finding whose reason holds when checked
         against the code.
       - `open` — anything else, with a one-line reason the author can act on.
+      It also compares the ledger with `posted-reviews.json`: each posted finding
+      that has no ledger entry becomes an extra item `{"id":"MISSING-<n>",
+      "status":"open","reason":"<the finding>"}` — the id check below then fails.
       Its FINAL message is only the JSON object
       `{"items":[{"id":"F1","status":"fixed|refutation_accepted|open","reason":"..."}]}`;
       it writes no files, does not push, and does not post to GitHub. Codex: `-o`
@@ -603,15 +620,21 @@ Phase 6 merges it.
       returned JSON to that path verbatim. A file that does not parse is a
       re-checker failure, never a verdict: re-dispatch once, then treat it as round 2 failed.
    3. Gate — deterministic, never by judgment. It passes only when the re-checker
-      covered exactly the ledger's ids and closed every one (an empty review passes
-      with an empty ledger):
+      covered exactly the ledger's ids, closed every one, and the ledger holds at
+      least one entry per top-level inline comment the reviews posted (an empty
+      review passes with an empty ledger):
       ```bash
-      jq -e -n --slurpfile f "$RUN_DIR/findings.json" --slurpfile r "$RUN_DIR/recheck-r$N.json" '
-        ($f[0] | map(.id) | sort) == ($r[0].items | map(.id) | sort)
+      N="$(bash "$SKILL_DIR/scripts/run_state.sh" get "$RUN_DIR" review_round)"
+      INLINE="$(gh api --paginate "repos/$OWNER/$REPO/pulls/$PR_NUMBER/comments" \
+        | jq -s '[.[][] | select(.in_reply_to_id == null)] | length')"
+      jq -e -n --argjson min "$INLINE" --slurpfile f "$RUN_DIR/findings.json" --slurpfile r "$RUN_DIR/recheck-r$N.json" '
+        ($f[0] | length) >= $min
+        and ($f[0] | map(.id) | sort) == ($r[0].items | map(.id) | sort)
         and all($r[0].items[]; .status == "fixed" or .status == "refutation_accepted")'
       ```
    4. Pass → post `{"event":"APPROVE","body":<table: id, status, reason>,"comments":[]}`
-      with `post_review.sh` (it posts as the bot). Approval must be the LAST push-
+      with `post_review.sh --verdict` (it posts as the bot; only this step passes
+      `--verdict`, so no review track can post a verdict). Approval must be the LAST push-
       relevant event: nothing may push to the PR branch after it. If the post fails
       (for example, the token mint fails mid-run), report the error, never retry as
       the gh user, and continue: Phase 6's approval gate then stops the merge.
@@ -619,7 +642,7 @@ Phase 6 merges it.
       "address re-check", push) or answer it with a stronger reason; update
       `findings.json`, post the reply as a PR comment, then run round 2.
    6. Fail, round 2 → post `{"event":"REQUEST_CHANGES","body":<the open items>,"comments":[]}`
-      as the bot, and carry the open items into the final report. Do not loop again.
+      as the bot with `post_review.sh --verdict`, and carry the open items into the final report. Do not loop again.
    Confirm with `gh api "repos/$OWNER/$REPO/pulls/$PR_NUMBER/reviews"` that the
    bot's latest review landed.
 8. Checkpoint: `bash "$SKILL_DIR/scripts/run_state.sh" set "$RUN_DIR" phase adjudicated`.
@@ -716,12 +739,14 @@ The second test refuses to merge a PR that carries no posted review.
 Approval gate — when `reviewer_login` is not `none`, the bot's latest non-comment
 review must be `APPROVED` on the exact head you will merge:
 ```bash
-LOGIN="$(bash "$SKILL_DIR/scripts/run_state.sh" get "$RUN_DIR" reviewer_login 2>/dev/null || echo none)"
-[ "$LOGIN" = none ] || gh api --paginate "repos/$OWNER/$REPO/pulls/$PR_NUMBER/reviews" \
+LOGIN="$(bash "$SKILL_DIR/scripts/run_state.sh" get "$RUN_DIR" reviewer_login)" \
+  && { [ "$LOGIN" = none ] || gh api --paginate "repos/$OWNER/$REPO/pulls/$PR_NUMBER/reviews" \
   | jq -se --arg l "$LOGIN" --arg h "$(git rev-parse HEAD)" '
       [.[][] | select(.user.login == $l and .state != "COMMENTED")] | last
-      | .state == "APPROVED" and .commit_id == $h'
+      | .state == "APPROVED" and .commit_id == $h'; }
 ```
+It fails closed: a missing `reviewer_login` (state error, or a run started before this
+gate existed) blocks the merge — the user merges by hand.
 A failed check → skip to Phase 7 and report that the PR stays open and ready (name
 the open items when the approval gate failed).
 
