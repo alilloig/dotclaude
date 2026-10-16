@@ -11,9 +11,12 @@ description: |
   dispatches one adversarial Codex reviewer per dimension (gpt-6.1-sol, high
   effort), fact-checks their findings and posts them itself; `--super` runs BOTH
   tracks in parallel and posts two independent reviews. Either way the findings
-  land as a GitHub PR review with inline ```suggestion blocks and a walkthrough;
+  land as a GitHub PR review with inline ```suggestion blocks and a walkthrough
+  (posted as the reviewer GitHub App's bot when one is configured);
   (4) the main session accepts/rejects each suggestion, lands accepted ones as a
-  third commit, and flips the PR from draft to READY FOR REVIEW; (5) build a
+  third commit, and flips the PR from draft to READY FOR REVIEW; a fresh
+  re-checker then confirms every finding is fixed or validly refuted, and the
+  reviewer App APPROVES the PR (up to 2 rounds); (5) build a
   visual explainer.html that pitches the change to reviewers/stakeholders; with
   `--quiz`, an understanding gate (inline quiz when interactive, self-grading
   quiz.html when headless) runs first; (6) squash-merge the PR once CI is green
@@ -218,11 +221,33 @@ session, STOP and tell the user to run
    `--super` (or "super review" / "both reviews" / "claude and codex" in words) →
    `set "$RUN_DIR" review_mode super` (default `agents`; `--super` wins if both
    flags are given); `--quiz` (or the understanding quiz asked in words) →
-   `set "$RUN_DIR" quiz_gate on` (default `off`). Verify the seed took:
+   `set "$RUN_DIR" quiz_gate on` (default `off`). Record the reviewer identity too
+   (see "Reviewer App" below): `set "$RUN_DIR" reviewer_login <login-or-none>`. Verify the seed took:
    `test -f "$RUN_DIR/state.json"` — never proceed without it. Remember this path for
    Phases 3–4. From here on, every stop-and-report exit must first checkpoint
    `bash "$SKILL_DIR/scripts/run_state.sh" set "$RUN_DIR" phase aborted` so the wake
    guard never resurrects a dead run.
+
+### Reviewer App (one bot identity for reviews and approvals)
+
+A GitHub App reviews and approves as `<app-slug>[bot]`. The PR author cannot approve
+their own PR, so without the App the run only COMMENTs. Config lives in
+`~/.config/lfg/reviewer-app.env` (`LFG_REVIEWER_APP_ID`, `LFG_REVIEWER_APP_KEY` = path
+to the `.pem`, mode 600). `scripts/app_token.sh` mints a repo-scoped installation
+token from it; `scripts/post_review.sh` uses it automatically. Resolve the identity
+for THIS repo in Phase 0 step 6:
+```bash
+LOGIN=none
+if bash "$SKILL_DIR/scripts/app_token.sh" --configured \
+   && bash "$SKILL_DIR/scripts/app_token.sh" "$OWNER" "$REPO" > /dev/null; then
+  LOGIN="$(bash "$SKILL_DIR/scripts/app_token.sh" --login)"
+fi
+bash "$SKILL_DIR/scripts/run_state.sh" set "$RUN_DIR" reviewer_login "$LOGIN"
+```
+`none` (no config, or the App is not installed on this repo) → reviews post as the
+gh user, Phase 4 step 7 is skipped, and Phase 6 has no approval gate. Configured but
+the token call fails with an error other than "not installed" → report the error
+once; the run continues with `none`. Never print or log a minted token.
 
 ## Phase 1 — Ship (/commit-push-pr, as a DRAFT)
 
@@ -321,8 +346,9 @@ Step 3 (checkpoint) and step 7 (confirm posted) apply in every mode.
    - Post: `bash "$SKILL_DIR/scripts/post_review.sh" "$OWNER" "$REPO" "$PR_NUMBER" "$RUN_DIR/review-payload.json"`
    - The PR is normally a DRAFT; GitHub accepts COMMENT reviews with inline suggestions
      on drafts. Only if the POST is rejected *specifically because of the draft state*:
-     `gh pr ready "$PR_NUMBER"` and retry ONCE (do not re-draft afterwards). Never use
-     APPROVE as the review event.
+     `gh pr ready "$PR_NUMBER"` and retry ONCE (do not re-draft afterwards). Phase 3
+     always posts `COMMENT` — only Phase 4 step 7 may post `APPROVE` or
+     `REQUEST_CHANGES`. With a reviewer App configured, the review posts as its bot.
 7. Confirm it posted — `gh pr view "$PR_NUMBER" --json reviews -q '.reviews | length'`
    must be ≥ 1 (≥ 2 in `super` mode, one review per track). If the count is short,
    name the track that failed and why before continuing — never checkpoint a phase
@@ -505,9 +531,10 @@ PR carries two independent consolidated reviews before you adjudicate in Phase 4
 
 ## Phase 4 — Self-adjudicate
 
-You now act as the PR author deciding what to take from the review. You do NOT
-approve the PR — GitHub permissions block self-approval anyway. Step 5 below flips
-the draft to ready; Phase 6 merges it.
+You now act as the PR author deciding what to take from the review. You never
+approve as yourself — GitHub blocks self-approval. Step 5 below flips the draft to
+ready; step 7 lets a fresh re-checker decide whether the reviewer App approves;
+Phase 6 merges it.
 
 1. Read the posted review from GitHub, not from your own memory of Phase 3 —
    in `codex` mode you never saw the findings, and in `super` mode there are two
@@ -523,6 +550,10 @@ the draft to ready; Phase 6 merges it.
    wrong. Where the tracks conflict, state which one you follow and the reason —
    that disagreement is the whole point of running two tracks. Never average the
    two into a vague middle position.
+   Write the ledger step 7 checks against, `$RUN_DIR/findings.json`: one entry per
+   inline suggestion and per walkthrough item, `[{"id":"F1","where":"path:line",
+   "finding":"<one line>","decision":"ACCEPT|REJECT","reason":"<one line>"}]`.
+   A finding raised by both `super` tracks is ONE entry.
 2. Apply every ACCEPTED change locally by editing the file to match the suggestion. (We
    apply via local edits, not GitHub's "commit suggestion" button.)
 3. If you accepted any change:
@@ -546,11 +577,52 @@ the draft to ready; Phase 6 merges it.
    Skip the flip when it already reports `false` (Phase 3's post fallback dropped
    the draft). If `gh pr ready` is rejected — the repo's plan lacks draft PRs, or
    the branch carries no commits — report the exact error and continue to Phase 5;
-   never abort the run over the flip. You still do NOT approve the PR: GitHub
-   blocks self-approval.
+   never abort the run over the flip. You still do NOT approve the PR yourself.
 6. Confirm the final PR state: `gh pr view "$PR_NUMBER" --json state,isDraft` must
    show `OPEN` and `false`.
-   Then checkpoint: `bash "$SKILL_DIR/scripts/run_state.sh" set "$RUN_DIR" phase adjudicated`.
+7. **Re-check and bot approval** — only when `reviewer_login` in the run state is
+   not `none`; otherwise go to step 8. Max 2 rounds. Each round:
+   1. `set "$RUN_DIR" review_round <N>`. (Resume: an existing
+      `$RUN_DIR/recheck-r<N>.json` means round N already ran — continue from its gate.)
+   2. Dispatch ONE fresh, read-only re-checker. It is a reviewer, not you: you
+      wrote the fixes and the refutations, so you never grade them. Track by
+      `review_mode`: `agents`/`super` → an `Agent` with `model: "opus"`; `codex` →
+      `codex exec -m gpt-6.1-sol -c model_reasoning_effort=high -s read-only
+      -o "$RUN_DIR/recheck-r<N>.json"`. Brief it with the PR number, `findings.json`,
+      `adjudication.md` (plus every later round's reply), and the commands
+      `git diff "$BASE_REF"...HEAD` and the fix commits' diffs. Its job, per id:
+      - `fixed` — an ACCEPTED finding whose problem is gone in the current code
+        (re-derive it from the source; the suggestion text is not proof).
+      - `refutation_accepted` — a REJECTED finding whose reason holds when checked
+        against the code.
+      - `open` — anything else, with a one-line reason the author can act on.
+      Its FINAL message is only the JSON object
+      `{"items":[{"id":"F1","status":"fixed|refutation_accepted|open","reason":"..."}]}`;
+      it writes no files, does not push, and does not post to GitHub. Codex: `-o`
+      captures that message as `$RUN_DIR/recheck-r<N>.json`. Agent: you write its
+      returned JSON to that path verbatim. A file that does not parse is a
+      re-checker failure, never a verdict: re-dispatch once, then treat it as round 2 failed.
+   3. Gate — deterministic, never by judgment. It passes only when the re-checker
+      covered exactly the ledger's ids and closed every one (an empty review passes
+      with an empty ledger):
+      ```bash
+      jq -e -n --slurpfile f "$RUN_DIR/findings.json" --slurpfile r "$RUN_DIR/recheck-r$N.json" '
+        ($f[0] | map(.id) | sort) == ($r[0].items | map(.id) | sort)
+        and all($r[0].items[]; .status == "fixed" or .status == "refutation_accepted")'
+      ```
+   4. Pass → post `{"event":"APPROVE","body":<table: id, status, reason>,"comments":[]}`
+      with `post_review.sh` (it posts as the bot). Approval must be the LAST push-
+      relevant event: nothing may push to the PR branch after it. If the post fails
+      (for example, the token mint fails mid-run), report the error, never retry as
+      the gh user, and continue: Phase 6's approval gate then stops the merge.
+   5. Fail, round 1 → for each `open` id, either fix it (edit, commit
+      "address re-check", push) or answer it with a stronger reason; update
+      `findings.json`, post the reply as a PR comment, then run round 2.
+   6. Fail, round 2 → post `{"event":"REQUEST_CHANGES","body":<the open items>,"comments":[]}`
+      as the bot, and carry the open items into the final report. Do not loop again.
+   Confirm with `gh api "repos/$OWNER/$REPO/pulls/$PR_NUMBER/reviews"` that the
+   bot's latest review landed.
+8. Checkpoint: `bash "$SKILL_DIR/scripts/run_state.sh" set "$RUN_DIR" phase adjudicated`.
 
 ## Phase 5 — Understand & pitch (explainer + opt-in quiz gate)
 
@@ -641,7 +713,17 @@ jq -e '.phase == "explained" and ((.quiz_gate // "off") != "on" or env.CLAUDE_JO
   && [ "$(gh pr view "$PR_NUMBER" --json reviews -q '.reviews | length')" -ge 1 ]
 ```
 The second test refuses to merge a PR that carries no posted review.
-A failed check → skip to Phase 7 and report that the PR stays open and ready.
+Approval gate — when `reviewer_login` is not `none`, the bot's latest non-comment
+review must be `APPROVED` on the exact head you will merge:
+```bash
+LOGIN="$(bash "$SKILL_DIR/scripts/run_state.sh" get "$RUN_DIR" reviewer_login 2>/dev/null || echo none)"
+[ "$LOGIN" = none ] || gh api --paginate "repos/$OWNER/$REPO/pulls/$PR_NUMBER/reviews" \
+  | jq -se --arg l "$LOGIN" --arg h "$(git rev-parse HEAD)" '
+      [.[][] | select(.user.login == $l and .state != "COMMENTED")] | last
+      | .state == "APPROVED" and .commit_id == $h'
+```
+A failed check → skip to Phase 7 and report that the PR stays open and ready (name
+the open items when the approval gate failed).
 
 Any gate below that fails is a STOP for this phase only: report the exact reason,
 leave the PR open and ready, and go to Phase 7 (its branch gate keeps the branch and
@@ -719,6 +801,8 @@ Report to the user, in this order:
 - which review tracks ran (Claude agents, Codex orchestrator, or both in `super`
   mode) and how many reviews are posted; kept-vs-dropped finding counts; what you
   accepted vs rejected and why;
+- the bot verdict — the reviewer login, the rounds used, and APPROVED or the open
+  items behind REQUEST_CHANGES (or "no reviewer App for this repo");
 - the quiz outcome — the score, the quiz.html link (headless), or "skipped; opt in
   with `--quiz`" (gate off);
 - kthxbai's status block (memories, evictions, checkpoint, branch, worktree, plugin,
