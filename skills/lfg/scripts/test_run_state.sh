@@ -119,6 +119,30 @@ else
   pass "set: rejects multi-word key sneaking past the whitelist"
 fi
 
+# --- review_round is numeric; reviewer_login is none or <slug>[bot] ---
+if bash "$RS" set "$RUN" review_round 2 > /dev/null 2>&1 && [[ "$(bash "$RS" get "$RUN" review_round)" == "2" ]]; then
+  pass "review_round: numeric value accepted and round-trips"
+else
+  fail "review_round: numeric value accepted and round-trips"
+fi
+if bash "$RS" set "$RUN" review_round two > /dev/null 2>&1; then
+  fail "review_round: rejects a non-numeric value"
+else
+  pass "review_round: rejects a non-numeric value"
+fi
+for l in none 'lfg-reviewer[bot]'; do
+  if bash "$RS" set "$RUN" reviewer_login "$l" > /dev/null 2>&1 && [[ "$(bash "$RS" get "$RUN" reviewer_login)" == "$l" ]]; then
+    pass "reviewer_login: '$l' accepted and round-trips"
+  else
+    fail "reviewer_login: '$l' accepted and round-trips"
+  fi
+done
+if bash "$RS" set "$RUN" reviewer_login alilloig > /dev/null 2>&1; then
+  fail "reviewer_login: rejects a human login"
+else
+  pass "reviewer_login: rejects a human login"
+fi
+
 # --- set rejects a multi-word phase that substring-matches ALLOWED_PHASES ---
 if bash "$RS" set "$RUN" phase "shipped simplified" > /dev/null 2>&1; then
   fail "set: rejects multi-word phase sneaking past the whitelist"
