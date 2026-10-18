@@ -81,19 +81,26 @@ them block the other phases.
 This is the phase that justifies the skill. Run it first and run it always.
 
 The memory store has two costs, and they are not the same. `MEMORY.md` loads
-into **every** session, so each line there is a permanent tax. Individual memory
-files load selectively, so their cost is retrieval precision. A policy that only
-asks "is this worth writing?" prices the second cost and ignores the first —
-which is how a memory store degrades into an always-loaded wall of stale hints.
-So this phase both writes and evicts.
+into sessions for **its repository**, so each line there is a permanent tax.
+Individual memory files load selectively, so their cost is retrieval precision.
+A policy that only asks "is this worth writing?" prices the second cost and
+ignores the first — which is how a memory store degrades into an always-loaded
+wall of stale hints. So this phase both writes and evicts.
 
 ### Step 1 — Establish the baseline
 
-```bash
-cat ~/.claude/projects/-Users-valrov-workspace/memory/MEMORY.md
-ls ~/.claude/projects/-Users-valrov-workspace/memory/
-git log --oneline -15
-```
+Read the auto-memory directory reported in the current Claude Code session.
+Use `/memory` to inspect its location when needed. Read its `MEMORY.md` index
+and relevant topic files, then check `git log --oneline -15`. If the session
+touched several repositories, inspect each repository's own memory.
+
+The default is `~/.claude/projects/<project>/memory/`: Claude Code derives
+`<project>` from the repository root and shares it across that repository's
+worktrees and subdirectories. Prefer the session-reported location to guessing
+an encoded path. A submodule is a separate repository. In a directory outside
+Git, the working directory supplies the project scope.
+
+Finish this step with a confirmed memory directory for each affected project.
 
 Something is already saved if it lives in a commit message, a PR description, a
 design doc, a `CLAUDE.md`, or an existing memory file.
@@ -147,30 +154,32 @@ What earns a durable memory:
 
 ### Step 4 — Write the durable memory
 
-Everything goes in `~/.claude/projects/-Users-valrov-workspace/memory/`, even
-for a session run inside a subproject. The per-subproject memory directories
-exist but are empty by design — a memory filed under
-`-Users-valrov-workspace-kaiosin/` will not load when the user works from
-`~/workspace`, which is where they usually work.
+Write project learnings into that project's confirmed native auto-memory
+directory. A session touching several repositories files each fact with its
+owning repository. Store standing cross-project instructions in
+`~/.claude/CLAUDE.md` or a concise file under `~/.claude/rules/`; check the
+existing instructions first so the same rule has one authoritative home.
+
+Use ordinary Markdown links between related topic files. Resolve links against
+the file containing them, including when the target belongs to another project.
+Keep auto memory machine-local and out of source control. Native storage and
+loading need no custom hooks, directory redirects, or synchronization layer.
 
 ```markdown
 ---
 name: <short-kebab-case-slug>
 description: <one line — what future-you reads to decide relevance>
-metadata:
-  type: user | feedback | project | reference
+type: user | feedback | project | reference
 ---
 
 <the fact. For feedback/project, add **Why:** and **How to apply:** lines.
-Link related memories with [[their-slug]].>
+Link related memories with [their title](their-file.md).>
 ```
 
-Keep to these four types. They are defined by the memory system that reads
-these files, so a record written in a richer shape is a record that does not
-load.
+These are Claude Code's native topic types. Markdown remains readable without
+frontmatter; these fields help retrieval and keep new records consistent.
 
-**Give every mutable claim a validity boundary** in the body. Frontmatter is
-fixed, so write it as two plain lines:
+**Give every mutable claim a validity boundary** in the body, for example:
 
 ```markdown
 **True as of:** 2026-09-08, sui CLI 1.64.2 on macOS ARM
@@ -186,10 +195,11 @@ Convert relative dates to absolute ones. **Update an existing memory before
 creating a new one** — two memories that half-agree are worse than one current
 one.
 
-Then add one line to `MEMORY.md`: `- [Title](file.md) — hook`. Write the hook
-so it cannot mislead on its own. A hook is loaded every session even when the
-file is never recalled, so a bare "Sui CLI does not support X" biases behavior
-for as long as it sits there. If the claim is version-bound, say so in the hook.
+Then add one line to that project's `MEMORY.md`: `- [Title](file.md) — hook`.
+Write the hook so it cannot mislead on its own. A hook is loaded every session
+even when the file is never recalled, so a bare "Sui CLI does not support X"
+biases behavior for as long as it sits there. If the claim is version-bound,
+say so in the hook.
 
 ### Step 5 — Replace the project checkpoint
 
@@ -217,8 +227,8 @@ store.
 
 ### Step 6 — Sweep before you leave
 
-The store is small enough that reading every file's frontmatter costs almost
-nothing, and this is the only moment anyone will do it. For each indexed record:
+Sweep the affected project's index and relevant topic files. For each indexed
+record:
 
 - **Delete** checkpoints whose work has landed.
 - **Delete** records whose invalidating event has occurred.
@@ -226,10 +236,12 @@ nothing, and this is the only moment anyone will do it. For each indexed record:
 - **Merge** records with the same scope and recall cue.
 - **Fix** any hook in `MEMORY.md` that reads as timeless but is not.
 
-Hold `MEMORY.md` to a soft budget of roughly 500–800 tokens. Past that, adding a
-memory has to replace, merge, or evict something — **append-forever is not an
-allowed operation**. Do not leave tombstones: a deleted memory's index line goes
-too, since the line is the part that was costing context.
+Keep each `MEMORY.md` index below 200 lines and 25 KB; Claude loads only the
+prefix up to those limits. Aim for roughly 500–800 tokens when practical. Past
+that, adding a memory has to replace, merge, or evict something —
+**append-forever is not an allowed operation**. Do not leave tombstones: a
+deleted memory's index line goes too, since the line is the part that was
+costing context.
 
 Report deletions in Phase 4. The user should hear what you removed, not
 discover it missing.

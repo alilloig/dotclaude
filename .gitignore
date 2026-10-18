@@ -7,6 +7,10 @@ debug/
 downloads/
 file-history/
 history.jsonl
+.claude.json
+.skypie-paired
+.skypies-paired
+.vlerv-paired
 ide/
 mcp-needs-auth-cache.json
 paste-cache/
@@ -18,6 +22,8 @@ sessions/
 shell-snapshots/
 stats-cache.json
 statsig/
+state/
+uploads/
 # auto-generated Chrome native-messaging host wrapper (hardcodes local version path)
 chrome/
 tasks/
@@ -35,8 +41,14 @@ plugins/marketplaces/
 plugins/known_marketplaces.json
 plugins/install-counts-cache.json
 plugins/plugin-catalog-cache.json
+plugins/plugin-directory-cache*.json
 plugins/blocklist.json
 plugins/.last_inuse_sweep
+plugins/.trash/
+plugins/synced/
+
+# Skills downloaded by Claude's sync service (keep authored skills tracked)
+skills/synced/
 
 # ── Channels (bot tokens, access control — NEVER commit) ──
 channels/
