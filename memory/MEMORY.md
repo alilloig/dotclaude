@@ -1,2 +1,0 @@
-- [HTML-output article and examples](reference_html_articles.md) — Thariq's article, Simon's summary, the 20-example companion site that grounds the global CLAUDE.md HTML preference
-- [Don't create a rigid /html skill](feedback_no_rigid_html_skill.md) — Thariq explicitly warns against locking Claude into a fixed HTML template skill; migrate per-task instead

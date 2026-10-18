@@ -30,6 +30,10 @@ by policy** — it must never sync between machines through git.
   `~/.claude/sui-pilot/.<source>-docs/` — use that path in place of the
   `${CLAUDE_PLUGIN_ROOT}/.<source>-docs/` form the agent file states, because
   `${CLAUDE_PLUGIN_ROOT}` does not expand inside a CLAUDE.md import.
+- **Opening URLs**: a page I should look at → `open <url>` in Bash. That goes
+  through Finicky to my real Chrome profile. Browser tools (chrome-devtools-mcp,
+  Playwright) are only for pages *you* must drive or inspect; they run in the
+  separate `~/dev-chrome` profile, never my real one.
 
 ## Asking before building
 
